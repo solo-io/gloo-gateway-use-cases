@@ -14,7 +14,7 @@ spec:
   http:
     - name: world-cities
       labels:
-        big-payload: "true"
+        xslt: "true"
       forwardTo:
         destinations:
           - ref:

@@ -17,6 +17,7 @@ https://www.solo.io/blog/handling-super-sized-requests-with-gloo-edge/
 
 ```sh
 kubectl apply --context gloo -f large-payloads/workspace.yaml
+kubectl apply -f large-payloads/workspace.yaml --context gloo
 kubectl apply -f large-payloads/virtual-gateway.yaml --context gloo
 kubectl apply -f large-payloads/route-table.yaml --context gloo
 
