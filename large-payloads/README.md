@@ -7,7 +7,7 @@
 kubectl create namespace httpbin --context gloo
 kubectl --context gloo label namespace httpbin istio-injection=enabled
 
-kubectl apply -f large-payloads/httpbin/httpbin.yaml -n httpbin --context gloo
+kubectl apply -f large-payloads/httpbin.yaml -n httpbin --context gloo
 ```
 
 ## Gloo Mesh Config
@@ -16,7 +16,6 @@ kubectl apply -f large-payloads/httpbin/httpbin.yaml -n httpbin --context gloo
 https://www.solo.io/blog/handling-super-sized-requests-with-gloo-edge/
 
 ```sh
-kubectl apply --context gloo -f large-payloads/workspace.yaml
 kubectl apply -f large-payloads/workspace.yaml --context gloo
 kubectl apply -f large-payloads/virtual-gateway.yaml --context gloo
 kubectl apply -f large-payloads/route-table.yaml --context gloo

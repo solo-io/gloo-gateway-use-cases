@@ -3,7 +3,7 @@
 # k3d-install
 k3d cluster create --wait --config setup/k3d/gloo.yaml
 
-sleep 20
+sleep 30
 
 # remove existing ones if they exist
 kubectl config delete-cluster gloo > /dev/null 2>&1 || true

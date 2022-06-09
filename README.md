@@ -29,7 +29,7 @@ meshctl cluster register \
 ```sh
 kubectl create ns istio-gateways --context gloo
 
-istioctl install -y --context gloo -f setup/istio/cluster1.yaml
+istioctl install -y --context gloo -f setup/istio/istiooperator.yaml
 ```
 ## Deploy RootTrustPolicy
 
