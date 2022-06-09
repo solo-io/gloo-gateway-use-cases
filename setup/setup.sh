@@ -45,11 +45,6 @@ helm upgrade --install gloo-mesh-agent-addons gloo-mesh-agent/gloo-mesh-agent \
   --set ext-auth-service.enabled=true \
   --version $GLOO_MESH_VERSION
 
-kubectl create namespace httpbin --context gloo
-kubectl --context gloo label namespace httpbin istio-injection=enabled
-
-kubectl apply -f setup/httpbin/httpbin.yaml -n httpbin --context gloo
-
 cat << EOF | kubectl --context gloo apply -f -
 apiVersion: admin.gloo.solo.io/v2
 kind: RootTrustPolicy
@@ -62,5 +57,3 @@ spec:
       generated: {}
     autoRestartPods: true
 EOF
-
-kubectl apply --context gloo -f setup/workspace.yaml

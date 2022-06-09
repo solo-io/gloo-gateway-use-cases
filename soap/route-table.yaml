@@ -1,0 +1,25 @@
+apiVersion: networking.gloo.solo.io/v2
+kind: RouteTable
+metadata:
+  name: world-cities
+  namespace: ops-team
+spec:
+  hosts:
+    - '*'
+  virtualGateways:
+    - name: north-south-gw
+      namespace: ops-team
+      cluster: gloo
+  workloadSelectors: []
+  http:
+    - name: world-cities
+      labels:
+        big-payload: "true"
+      forwardTo:
+        destinations:
+          - ref:
+              name: world-cities-soap-service
+              namespace: soap
+              cluster: gloo
+            port:
+              number: 8080

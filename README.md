@@ -48,14 +48,6 @@ spec:
 EOF
 ```
 
-## Gloo Mesh Configuration
-
-
-```sh
-# Create workspaces and namespaces for configuration
-kubectl apply --context gloo -f setup/workspace.yaml
-```
-
 ## Gloo Mesh Addons
 
 ```sh
@@ -69,12 +61,4 @@ helm upgrade --install gloo-mesh-agent-addons gloo-mesh-agent/gloo-mesh-agent \
   --set rate-limiter.enabled=true \
   --set ext-auth-service.enabled=true \
   --version $GLOO_MESH_VERSION
-```
-
-## Deploy httpbin
-```
-kubectl create namespace httpbin --context gloo
-kubectl --context gloo label namespace httpbin istio-injection=enabled
-
-kubectl apply -f setup/httpbin/httpbin.yaml -n httpbin --context gloo
 ```
