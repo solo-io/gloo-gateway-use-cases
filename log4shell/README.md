@@ -1,5 +1,6 @@
-# The Elephant (Payload) in the Room: Handling Super-Sized Requests with Gloo Gateway
+# Block Log4Shell attacks with Gloo Gateway
 
+https://www.solo.io/blog/block-log4shell-attacks-with-gloo-edge/
 
 ## Deploy httpbin
 
