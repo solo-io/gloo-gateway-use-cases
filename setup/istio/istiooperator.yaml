@@ -7,7 +7,8 @@ spec:
   # only the control plane components are installed (https://istio.io/latest/docs/setup/additional-setup/config-profiles/)
   profile: minimal
   # Solo.io Istio distribution repository
-  hub: us-docker.pkg.dev/gloo-mesh/istio-a9797008feb0
+  # Find hub values for your Istio version at https://bit.ly/solo-istio-images - requires user registration
+  hub: INSERT-ISTIO-REPO-KEY-FOR-VERSION-TAG-HERE
   # Solo.io Gloo Mesh Istio tag
   tag: 1.13.4-solo
 

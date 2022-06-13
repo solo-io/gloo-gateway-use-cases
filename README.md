@@ -3,8 +3,9 @@ export MGMT_CONTEXT=mgmt
 export REMOTE_CONTEXT1=cluster1
 export REMOTE_CONTEXT2=cluster2
 
-export ISTIO_REPO=us-docker.pkg.dev/gloo-mesh/istio-a9797008feb0
 export ISTIO_VERSION=1.13.4-solo
+# Find ISTIO_REPO values at https://bit.ly/solo-istio-images - requires user registration
+export ISTIO_REPO="insert-istio-repo-key-for-ISTIO_VERSION-here"
 
 export GLOO_MESH_VERSION=v2.0.6
 
