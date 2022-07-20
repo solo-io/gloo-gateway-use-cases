@@ -1,5 +1,7 @@
 # The Elephant (Payload) in the Room: Handling Super-Sized Requests with Gloo Gateway
 
+- Gloo Gateway: https://www.solo.io/blog/super-sized-requests-gloo-api-gateway/
+- Gloo Edge: https://www.solo.io/blog/handling-super-sized-requests-with-gloo-edge/
 
 ## Deploy httpbin
 
@@ -12,9 +14,6 @@ kubectl apply -f large-payloads/httpbin.yaml -n httpbin --context gloo
 
 ## Gloo Mesh Config
 
-
-https://www.solo.io/blog/handling-super-sized-requests-with-gloo-edge/
-
 ```sh
 kubectl apply -f large-payloads/workspace.yaml --context gloo
 kubectl apply -f large-payloads/virtual-gateway.yaml --context gloo
@@ -22,7 +21,6 @@ kubectl apply -f large-payloads/route-table.yaml --context gloo
 
 kubectl apply -f large-payloads/transformation-policy.yaml --context gloo
 ```
-
 
 ## Generate Payloads
 
@@ -32,7 +30,6 @@ base64 /dev/urandom | head -c 10000000 > large-payloads/1m-payload.txt
 base64 /dev/urandom | head -c 100000000 > large-payloads/10m-payload.txt
 base64 /dev/urandom | head -c 1000000000 > large-payloads/100m-payload.txt
 ```
-
 
 ## Test
 
