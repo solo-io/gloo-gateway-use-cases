@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# exit if placeholder value for image / hub in istiooperator.yaml file has not been replaced
+if grep -q INSERT-ISTIO-REPO-KEY-FOR-VERSION-TAG-HERE setup/istio/istiooperator.yaml; then
+    echo ERROR: Replace placeholder value for \"hub\" in setup/istio/istiooperator.yaml with versioning repo key for Solo Istio images. 
+    echo Find hub values for your Istio version at https://bit.ly/solo-istio-images 
+    echo Istio images page requires user registration. Ask your Solo account executive for details.
+    echo Exiting
+    exit 1
+fi
+
 # k3d-install
 k3d cluster create --wait --config setup/k3d/gloo.yaml
 
