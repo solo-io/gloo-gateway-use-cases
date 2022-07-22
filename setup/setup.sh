@@ -1,12 +1,28 @@
 #!/bin/bash
 
-# exit if placeholder value for image / hub in istiooperator.yaml file has not been replaced
-if grep -q INSERT-ISTIO-REPO-KEY-FOR-VERSION-TAG-HERE setup/istio/istiooperator.yaml; then
-    echo ERROR: Replace placeholder value for \"hub\" in setup/istio/istiooperator.yaml with versioning repo key for Solo Istio images. 
-    echo Find hub values for your Istio version at https://bit.ly/solo-istio-images 
-    echo Istio images page requires user registration. Ask your Solo account executive for details.
-    echo Exiting
-    exit 1
+# exit if value for Solo Istio image is not supplied
+if [[ -z "${ISTIO_REPO}" ]]; then
+  echo ERROR: Specify a value for ISTIO_REPO environment variable
+  echo Find the value for your Istio version at https://bit.ly/solo-istio-images
+  echo The Istio images page requires user registration. Ask your Solo account executive for details.
+  echo Exiting
+  exit 1
+fi
+
+# exit if value for Mesh license key is not supplied
+if [[ -z "${GLOO_MESH_LICENSE_KEY}" ]]; then
+  echo ERROR: Specify a value for GLOO_MESH_LICENSE_KEY environment variable
+  echo Ask your Solo account executive to supply one if your organization does not have one.
+  echo Exiting
+  exit 1
+fi
+
+# exit if value for Mesh version is not supplied
+if [[ -z "${GLOO_MESH_VERSION}" ]]; then
+  echo ERROR: Specify a value for GLOO_MESH_VERSION environment variable
+  echo Valid values look like this: v2.0.7
+  echo Exiting
+  exit 1
 fi
 
 # k3d-install
@@ -37,6 +53,14 @@ meshctl cluster register \
   --remote-context=gloo \
   --version $GLOO_MESH_VERSION \
   gloo
+
+# update IstioOperator config with Istio image key from ISTIO_REPO environment variable
+sed -i '' "s|INSERT-ISTIO-REPO-KEY-FOR-VERSION-TAG-HERE|${ISTIO_REPO}|" setup/istio/istiooperator.yaml
+rc=$?
+if [ $rc -ne 0 ]; then
+  # Linux syntax for sed in-place replacement is slightly different
+  sed -i "s|INSERT-ISTIO-REPO-KEY-FOR-VERSION-TAG-HERE|${ISTIO_REPO}|" setup/istio/istiooperator.yaml
+fi
 
 kubectl create ns istio-gateways --context gloo
 istioctl install -y --context gloo -f setup/istio/istiooperator.yaml
