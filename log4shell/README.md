@@ -1,6 +1,6 @@
 # Block Log4Shell attacks with Gloo Gateway
 
-https://www.solo.io/blog/block-log4shell-attacks-with-gloo-edge/
+https://www.solo.io/blog/block-log4shell-attacks-with-gloo-gateway/
 
 ## Deploy httpbin
 
