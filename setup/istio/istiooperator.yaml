@@ -10,7 +10,7 @@ spec:
   # Find hub values for your Istio version at https://bit.ly/solo-istio-images - requires user registration
   hub: INSERT-ISTIO-REPO-KEY-FOR-VERSION-TAG-HERE
   # Solo.io Gloo Mesh Istio tag
-  tag: 1.13.4-solo
+  tag: 1.16.1-solo
 
   meshConfig:
     # enable access logging to standard output
