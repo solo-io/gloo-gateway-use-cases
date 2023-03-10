@@ -1,0 +1,38 @@
+apiVersion: networking.gloo.solo.io/v2
+kind: RouteTable
+metadata:
+  name: httpbin
+  namespace: ops-team
+spec:
+  hosts:
+    - '*'
+  virtualGateways:
+    - name: north-south-gw
+      namespace: ops-team
+      cluster: gloo
+  workloadSelectors: []
+  http:
+    - name: httpbin-in-mesh
+      matchers:
+      - headers:
+        - name: in-mesh
+          value: "true"
+      forwardTo:
+        destinations:
+          - ref:
+              name: httpbin
+              namespace: httpbin
+              cluster: gloo
+            port:
+              number: 8000
+    - name: httpbin
+      forwardTo:
+        destinations:
+          - kind: EXTERNAL_SERVICE
+            ref:
+              name: httpbin
+              namespace: ops-team
+              cluster: gloo
+            port:
+              number: 443
+

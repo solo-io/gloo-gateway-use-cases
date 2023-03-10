@@ -1,0 +1,14 @@
+apiVersion: networking.gloo.solo.io/v2
+kind: ExternalService
+metadata:
+  name: httpbin
+  namespace: ops-team
+  labels:
+    app: httpbin
+spec:
+  hosts:
+  - httpbin.org
+  ports:
+  - name: http
+    number: 80
+    protocol: HTTP
