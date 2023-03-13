@@ -12,3 +12,7 @@ spec:
   - name: http
     number: 80
     protocol: HTTP
+  - name: https
+    number: 443
+    protocol: HTTPS
+    clientsideTls: {}

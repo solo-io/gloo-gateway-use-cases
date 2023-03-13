@@ -8,7 +8,7 @@ spec:
   profile: minimal
   # Solo.io Istio distribution repository
   # Find hub values for your Istio version at https://bit.ly/solo-istio-images - requires user registration
-  hub: INSERT-ISTIO-REPO-KEY-FOR-VERSION-TAG-HERE
+  hub: us-docker.pkg.dev/gloo-mesh/istio-7a97385594af
   # Solo.io Gloo Mesh Istio tag
   tag: 1.16.1-solo
 
