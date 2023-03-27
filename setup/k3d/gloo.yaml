@@ -2,7 +2,7 @@ apiVersion: k3d.io/v1alpha4
 kind: Simple
 metadata:
   name: gloo
-image: rancher/k3s:v1.21.3-k3s1
+image: rancher/k3s:v1.24.9-k3s1
 ports:
   - port: 8080:80 # same as `--port '8080:80@loadbalancer'`
     nodeFilters:
