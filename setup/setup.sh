@@ -40,6 +40,8 @@ kubectl config rename-context k3d-gloo gloo
 # Gloo Mesh Install
 curl -sL https://run.solo.io/meshctl/install | GLOO_MESH_VERSION=${GLOO_MESH_VERSION} sh -
 
+export PATH=$HOME/.gloo-mesh/bin:$PATH
+
 meshctl install \
   --kubecontext gloo \
   --license $GLOO_MESH_LICENSE_KEY \
