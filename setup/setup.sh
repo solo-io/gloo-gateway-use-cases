@@ -42,51 +42,14 @@ curl -sL https://run.solo.io/meshctl/install | GLOO_MESH_VERSION=${GLOO_MESH_VER
 
 export PATH=$HOME/.gloo-mesh/bin:$PATH
 
-meshctl install \
-  --kubecontext gloo \
-  --license $GLOO_MESH_LICENSE_KEY \
-  --version $GLOO_MESH_VERSION \
-  --set mgmtClusterName=gloo
+meshctl install --profiles gloo-gateway-demo \
+  --set common.cluster=gloo \
+  --set licensing.glooGatewayLicenseKey=$GLOO_GATEWAY_LICENSE_KEY \
+  --kubecontext gloo
 
-sleep 10
+kubectl delete workspace gloo --namespace gloo-mesh --context gloo
+kubectl delete workspacesettings default --namespace gloo-mesh --context gloo
 
-meshctl cluster register \
-  --kubecontext=gloo \
-  --remote-context=gloo \
-  --version $GLOO_MESH_VERSION \
-  gloo
+sleep 45
 
-# update IstioOperator config with Istio image key from ISTIO_REPO environment variable
-sed -i '' "s|INSERT-ISTIO-REPO-KEY-FOR-VERSION-TAG-HERE|${ISTIO_REPO}|" setup/istio/istiooperator.yaml
-rc=$?
-if [ $rc -ne 0 ]; then
-  # Linux syntax for sed in-place replacement is slightly different
-  sed -i "s|INSERT-ISTIO-REPO-KEY-FOR-VERSION-TAG-HERE|${ISTIO_REPO}|" setup/istio/istiooperator.yaml
-fi
-
-kubectl create ns istio-gateways --context gloo
-istioctl install -y --context gloo -f setup/istio/istiooperator.yaml
-
-kubectl --context gloo create namespace gloo-mesh-addons
-kubectl --context gloo label namespace gloo-mesh-addons istio-injection=enabled
-
-helm upgrade --install gloo-mesh-agent-addons gloo-mesh-agent/gloo-mesh-agent \
-  --namespace gloo-mesh-addons \
-  --kube-context=gloo \
-  --set glooMeshAgent.enabled=false \
-  --set rate-limiter.enabled=true \
-  --set ext-auth-service.enabled=true \
-  --version $GLOO_MESH_VERSION
-
-cat << EOF | kubectl --context gloo apply -f -
-apiVersion: admin.gloo.solo.io/v2
-kind: RootTrustPolicy
-metadata:
-  name: root-trust-policy
-  namespace: gloo-mesh
-spec:
-  config:
-    mgmtServerCa:
-      generated: {}
-    autoRestartPods: true
-EOF
+meshctl check --kubecontext gloo
