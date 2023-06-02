@@ -9,18 +9,18 @@ if [[ -z "${ISTIO_REPO}" ]]; then
   exit 1
 fi
 
-# exit if value for Mesh license key is not supplied
-if [[ -z "${GLOO_MESH_LICENSE_KEY}" ]]; then
-  echo ERROR: Specify a value for GLOO_MESH_LICENSE_KEY environment variable
+# exit if value for Gateway license key is not supplied
+if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
+  echo ERROR: Specify a value for GLOO_GATEWAY_LICENSE_KEY environment variable
   echo Ask your Solo account executive to supply one if your organization does not have one.
   echo Exiting
   exit 1
 fi
 
-# exit if value for Mesh version is not supplied
+# exit if value for Mesh/Gateway version is not supplied
 if [[ -z "${GLOO_MESH_VERSION}" ]]; then
   echo ERROR: Specify a value for GLOO_MESH_VERSION environment variable
-  echo Valid values look like this: v2.0.7
+  echo Valid values look like this: v2.3.4
   echo Exiting
   exit 1
 fi
