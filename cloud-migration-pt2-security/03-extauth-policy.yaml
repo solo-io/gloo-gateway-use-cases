@@ -1,0 +1,21 @@
+apiVersion: security.policy.gloo.solo.io/v2
+kind: ExtAuthPolicy
+metadata:
+  name: httpbin-apikey
+  namespace: ops-team
+spec:
+  applyToRoutes:
+  - route:
+      labels:
+        route: httpbin
+  config:
+    server:
+      name: default-server
+      namespace: ops-team
+      cluster: gloo
+    glooAuth:
+      configs:
+      - apiKeyAuth:
+          headerName: x-api-key
+          labelSelector:
+            api-keyset: httpbin-users

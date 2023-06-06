@@ -1,0 +1,68 @@
+apiVersion: trafficcontrol.policy.gloo.solo.io/v2
+kind: RateLimitClientConfig
+metadata:
+  name: rate-limit-client-config
+  namespace: ops-team
+spec:
+  raw:
+    rateLimits:
+    - actions:
+      - genericKey:
+          descriptorValue: counter
+---
+apiVersion: admin.gloo.solo.io/v2
+kind: RateLimitServerConfig
+metadata:
+  name: rate-limit-server-config
+  namespace: ops-team
+spec:
+  destinationServers:
+  - ref:
+      name: rate-limiter
+      namespace: gloo-mesh-addons
+    port:
+      name: grpc
+  raw:
+    descriptors:
+    - key: generic_key
+      rateLimit:
+        requestsPerUnit: 3
+        unit: MINUTE
+      value: counter
+---
+apiVersion: admin.gloo.solo.io/v2
+kind: RateLimitServerSettings
+metadata:
+  annotations:
+    cluster.solo.io/cluster: ""
+  name: rate-limit-server-settings
+  namespace: ops-team
+spec:
+  destinationServer:
+    port:
+      number: 8083
+    ref:
+      cluster: gloo
+      name: rate-limiter
+      namespace: gloo-mesh-addons
+---
+apiVersion: trafficcontrol.policy.gloo.solo.io/v2
+kind: RateLimitPolicy
+metadata:
+  name: rate-limit-policy
+  namespace: ops-team
+spec:
+  applyToRoutes:
+  - route:
+      labels:
+        route: "httpbin"
+  config:
+    serverSettings:
+      name: rate-limit-server-settings
+      namespace: ops-team
+    ratelimitClientConfig:
+      name: rate-limit-client-config
+      namespace: ops-team
+    ratelimitServerConfig:
+      name: rate-limit-server-config
+      namespace: ops-team

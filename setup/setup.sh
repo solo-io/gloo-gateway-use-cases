@@ -28,6 +28,10 @@ fi
 # k3d-install
 k3d cluster create --wait --config setup/k3d/gloo.yaml
 
+echo '*******************************************'
+echo Waiting to complete k3d cluster config...
+echo '*******************************************'
+
 sleep 30
 
 # remove existing ones if they exist
@@ -37,7 +41,9 @@ kubectl config delete-context gloo > /dev/null 2>&1 || true
 
 kubectl config rename-context k3d-gloo gloo
 
-# Gloo Mesh Install
+echo '*******************************************'
+echo Installing Gloo Gateway...
+echo '*******************************************'
 curl -sL https://run.solo.io/meshctl/install | GLOO_MESH_VERSION=${GLOO_MESH_VERSION} sh -
 
 export PATH=$HOME/.gloo-mesh/bin:$PATH
@@ -50,6 +56,9 @@ meshctl install --profiles gloo-gateway-demo \
 kubectl delete workspace gloo --namespace gloo-mesh --context gloo
 kubectl delete workspacesettings default --namespace gloo-mesh --context gloo
 
-sleep 45
+echo '*******************************************'
+echo Waiting to complete Gloo Gateway config...
+echo '*******************************************'
+sleep 90
 
 meshctl check --kubecontext gloo
