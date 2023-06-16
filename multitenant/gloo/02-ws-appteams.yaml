@@ -1,0 +1,45 @@
+apiVersion: admin.gloo.solo.io/v2
+kind: Workspace
+metadata:
+  name: app1-team
+  namespace: gloo-mesh
+  labels:
+    team-category: app-team
+spec:
+  workloadClusters:
+  - name: '*'
+    namespaces:
+    - name: app-1
+---
+apiVersion: admin.gloo.solo.io/v2
+kind: WorkspaceSettings
+metadata:
+  name: app1-team
+  namespace: app-1
+spec:
+  exportTo:
+    - workspaces:
+      - name: ops-team
+---
+apiVersion: admin.gloo.solo.io/v2
+kind: Workspace
+metadata:
+  name: app2-team
+  namespace: gloo-mesh
+  labels:
+    team-category: app-team
+spec:
+  workloadClusters:
+  - name: '*'
+    namespaces:
+    - name: app-2
+---
+apiVersion: admin.gloo.solo.io/v2
+kind: WorkspaceSettings
+metadata:
+  name: app2-team
+  namespace: app-2
+spec:
+  exportTo:
+    - workspaces:
+      - name: ops-team

@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app-2
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-2
+  namespace: app-2
+---
+# Service descriptor to expose web frontend
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-2
+  namespace: app-2
+spec:
+  selector:
+    app: app-2
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8081
+---
+# Deployment descriptor for app-2   
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-2
+  namespace: app-2
+  labels:
+    app: app-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-2
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: app-2
+        version: v1
+    spec:
+      serviceAccountName: app-2
+      containers:
+      - name: app-2
+        image: nicholasjackson/fake-service:v0.7.8
+        ports:
+        - containerPort: 8081
+        env:
+        - name: "LISTEN_ADDR"
+          value: "0.0.0.0:8081"
+#        - name: "UPSTREAM_URIS"
+#          value: "http://recommendation:8080"
+        - name: "NAME"
+          value: "app-2"
+        - name: "MESSAGE"
+          value: "Hello From App-2"
+

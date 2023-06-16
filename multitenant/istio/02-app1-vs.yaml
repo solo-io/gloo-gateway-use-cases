@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-vs-1
+  namespace: ops-team
+spec:
+  hosts:
+  - "api.example.com"
+  gateways:
+  - ops-team/app-gateway
+  http:
+  - name: "app-1-foo-route"
+    match:
+    - uri:
+        prefix: "/foo"
+    route:
+    - destination:
+        host: app-1.app-1.svc.cluster.local
+        port:
+          number: 8080
+  - name: "app-1-catchall-route"
+    route:
+    - destination:
+        host: app-1.app-1.svc.cluster.local
+        port:
+          number: 8080
