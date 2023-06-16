@@ -1,4 +1,4 @@
-# <center>Gloo Gateway Workshop</center>
+# An Istio / Gloo Platform Multi-Tenancy Resilience Example
 
 ## Introduction <a name="introduction"></a>
 
@@ -32,14 +32,68 @@ You can find more information about Gloo Gateway in the official documentation:
 * [Lab 10 - Web Application Firewall](#waf)
 * [Lab 11 - GraphQL](#graphql)
 
-## Begin
+## Clone GitHub repo
 
-To get started with this workshop, clone this repo.
+To get started with this example, clone this repo.
 
 ```sh
-git clone https://github.com/solo-io/solo-cop.git
-cd solo-cop/workshops/gloo-gateway
+git clone https://github.com/solo-io/gloo-gateway-use-cases.git
+cd gloo-gateway-use-cases
 ```
+## Install Istio / Gloo Platform
+
+If you don’t have Gloo Platform installed, there is a simplified installation script available in the GitHub repo you cloned in the previous section. Before you walk through that script, you’ll need three pieces of information.
+
+* Place a Gloo license key in the environment variable GLOO_GATEWAY_LICENSE_KEY. If you don’t already have one of these, you can obtain it from your Solo account executive.
+
+* Supply a reference to the repo where the hardened Solo images for Istio live. This value belongs in the environment variable ISTIO_REPO. You can obtain the proper value from [this location](https://support.solo.io/hc/en-us/articles/4414409064596) once you’re a Gloo Mesh customer or have activated a free trial.
+
+* Supply a version string for Gloo Mesh Gateway in the environment variable GLOO_MESH_VERSION. For the tests we are running here, we use v2.3.4.
+
+If you’ve never installed any Gloo Platform technology before, you will need to import a Gloo Platform helm chart before the installation script below will work properly.
+
+```sh
+helm repo add gloo-platform https://storage.googleapis.com/gloo-platform/helm-charts
+helm repo update
+```
+
+Now from the gloo-gateway-use-cases directory at the top level of the cloned repo, execute the setup script below. It will configure a local k3d cluster containing Gloo Platform and an underlying Istio deployment. The script will fail if any of the three environment variables above is not present.
+
+```sh
+./setup/setup.sh
+```
+
+The output from the setup script should resemble what you see below. If you require a more complex installation, a more complete Gloo Platform installation guide is available [here](https://docs.solo.io/gloo-mesh-enterprise/latest/getting_started/).
+
+```
+INFO[0000] Using config file setup/k3d/gloo.yaml (k3d.io/v1alpha4#simple)
+INFO[0000] portmapping '8080:80' targets the loadbalancer: defaulting to [servers:*:proxy agents:*:proxy]
+INFO[0000] portmapping '8443:443' targets the loadbalancer: defaulting to [servers:*:proxy agents:*:proxy]
+INFO[0000] Prep: Network
+...
+```
+
+## Istio Example
+
+* Spin up two apps in separate namespaces, plus an ops namespace.
+
+* Each VS has a catch-all route, plus a url prefix route. Apply VS for app1, then app2. Show that the prefix routes for both apps work as expected. But the catch-all routes have unexpected behavior. They always route to app1, where maybe you’d expect some kind of conflict error. (Point out that this is a documented Istio limitation, and that it’s actually routing based on most recently updated VS? Ugh.)
+
+* What happens if the app1 team needs to change something? Simulate by removing app1 VS and reapply.
+
+* Retry catch-all routes. What?!? Now it always routes to app2, even though the routing config is identical to what it was before. There’s nothing that app1 team can do on their own to restore the expected catch-all routing.
+
+## Gloo Platform Example
+
+* Now do Gloo example with RT delegation pattern, with an ops-team owned RT that has separate routes to delegate to separate app1 and app2 RTs.
+
+* Show that the ambiguous catch-all request from before now 404s. 
+
+* Show the prefix url routes work as expected.
+
+* Show that the catch-all routes work as expected, and that each team can now truly work independently due to Gloo’s multi-tenancy support.
+
+XXXXXXXXXXXXXXX
 
 Set these environment variables which will be used throughout the workshop.
 
