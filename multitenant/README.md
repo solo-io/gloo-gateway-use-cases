@@ -354,6 +354,14 @@ curl -H "host: api.example.com" localhost:8080/team2/anything
 }
 ```
 
+## Exercise Cleanup
+
+If you used the setup.sh script described earlier to establish your Gloo Platform environment for this exercise, then there is an easy way to tear down this environment as well. Just run this command:
+
+```sh
+./setup/teardown.sh
+```
+
 ## Want to learn more about Gloo Platform?
 
 Read more about Gloo Platform on the [Solo website](https://www.solo.io/products/gloo-platform/) and in the [product documentation](https://docs.solo.io/).
