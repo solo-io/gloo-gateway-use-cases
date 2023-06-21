@@ -121,7 +121,7 @@ curl -H "host: api.example.com" localhost:8080/foo -i
 
 Note that the `/foo` route goes to `app-1` as expected:
 
-```
+```json
 HTTP/1.1 200 OK
 vary: Origin
 date: Tue, 20 Jun 2023 18:45:09 GMT
