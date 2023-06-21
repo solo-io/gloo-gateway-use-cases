@@ -209,7 +209,7 @@ What?!? `Team2` sees its expected requests route to `app-1` instead:
 
 ```json
 {
-  "name": "app-1",
+  "name": "app-1-default",
   "uri": "/goto/app2",
   "type": "HTTP",
   "ip_addresses": [
@@ -218,7 +218,7 @@ What?!? `Team2` sees its expected requests route to `app-1` instead:
   "start_time": "2023-06-20T19:14:49.185166",
   "end_time": "2023-06-20T19:14:49.185291",
   "duration": "125µs",
-  "body": "Hello From App-1",
+  "body": "Hello From App-1 Default",
   "code": 200
 }
 ```
@@ -242,7 +242,7 @@ curl -H "host: api.example.com" localhost:8080/goto/app2
 
 ```
 {
-  "name": "app-2",
+  "name": "app-2-default",
   "uri": "/goto/app2",
 ...snip...
 ```
@@ -254,12 +254,12 @@ kubectl apply -f istio/02-app1-vs.yaml
 ```
 
 ```sh
-curl -H "host: api.example.com" localhost:8080/goto/app2
+curl -H "host: api.example.com" localhost:8080/goto/app1
 ```
 
 ```
 {
-  "name": "app-2",
+  "name": "app-2-default",
   "uri": "/goto/app2",
 ...snip...
 ```
@@ -267,7 +267,7 @@ curl -H "host: api.example.com" localhost:8080/goto/app2
 So we conclude that there are a couple of potential issues.
 * Routes can be "lost" when there are `VirtualService` conflicts between resources, even with as few as two tenants.
 
-* Race conditions between `VirtualService` resources, say in parallel branches of CI/CD pipelines, can result in the same logical configurations exhibiting different routing behaviors, and without any indication of a problem.
+* Race conditions between `VirtualService` resources, say in parallel branches of CI/CD pipelines, can result in the same logical configurations exhibiting different routing behaviors, non-deterministically, and without any indication of a problem.
 
 While there are certainly techniques to manage these scenarios in open-source Istio, we would like to avoid them altogether with tenant-friendly techniques like routing delegation. Let's see how we might approach this with a value-added layer like Gloo Platform.
 
@@ -294,6 +294,10 @@ Third, we'll lay down a `VirtualGateway` that selects the Istio Ingress Gateway 
 kubectl apply -f ./gloo/03-vg-httpbin.yaml
 ```
 
+This diagram below depicts how the `VirtualGateway` and `RouteTable` resources manage traffic in Gloo Platform.
+
+![RouteTable delegation diagram](images/vg-delegating-rts.png)
+
 Fourth, we'll establish `RouteTables`. This is the heart of Gloo's multi-tenant support. The first set of RTs are owned by the `ops-team` select the gateway established in the previous step. These RTs intercept requests with a prefix designated for their respective teams, `/team1` and `/team2`, and then delegate to other RTs that are owned by those teams.
 
 ```sh
@@ -305,10 +309,6 @@ Fifth, we configure `RouteTables` that are owned entirely by the application tea
 ```sh
 kubectl apply -f ./gloo/05-rt-team1.yaml,gloo/06-rt-team2.yaml
 ```
-
-This diagram below depicts how the `VirtualGateway` and `RouteTable` resources manage traffic in Gloo Platform.
-
-![RouteTable delegation diagram](images/vg-delegating-rts.png)
 
 ### Test the Gloo Services
 

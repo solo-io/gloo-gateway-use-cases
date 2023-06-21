@@ -21,7 +21,7 @@ spec:
       forwardTo:
         destinations:
           - ref:
-              name: app-2
+              name: app-2-default
               namespace: app-2
             port:
               number: 8080

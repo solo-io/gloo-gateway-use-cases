@@ -18,9 +18,9 @@ spec:
         host: app-1.app-1.svc.cluster.local
         port:
           number: 8080
-  - name: "app-1-catchall-route"
+  - name: "app-1-default-route"
     route:
     - destination:
-        host: app-1.app-1.svc.cluster.local
+        host: app-1-default.app-1.svc.cluster.local
         port:
           number: 8080
