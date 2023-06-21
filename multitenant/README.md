@@ -356,6 +356,26 @@ curl -H "host: api.example.com" localhost:8080/team2/anything
 }
 ```
 
+## Multi-Tenant Observability
+
+In addition to supporting unambiguous multi-tenant routing, Gloo Platform also allows you to observe what's happening among the tenants of your service mesh. A convenient way to visualize traffic flows and debug using Gloo Platform is to use the flow graph bundled with the Gloo Platform UI.
+
+An easy way to enable this at development time is to port-forward the interface of the gloo-mesh-ui service, like this:
+
+```sh
+kubectl port-forward -n gloo-mesh svc/gloo-mesh-ui 8090:8090 --context gloo
+```
+
+Now point your browser at http://localhost:8090 and switch to Graph on the left navigation menu. Next to the `Filter By:` label, be sure to select all Workspaces, all Clusters, and all Namespaces. After a few seconds to allow for telemetry collection and processing, you’ll see a graph like the one below showing the istio-ingressgateway delegating 100% of its requests to the external httpbin.org service. (You may also want to fire off a few additional curl commands like the one above to the gateway endpoint in order to make the statistics slightly more interesting.)
+
+This allows you to see the traffic moving between the ingress gateway and the four services we established, across all three workspaces.
+
+![Multitenant Observability Top-Level](images/multitenant-observe-top.png)
+
+You can select individual services to drill down on each one's usage metrics, error rates, and the like.
+
+![Multitenant Observability Single Service](images/multitenant-observe-app1.png)
+
 ## Exercise Cleanup
 
 If you used the setup.sh script described earlier to establish your Gloo Platform environment for this exercise, then there is an easy way to tear down this environment as well. Just run this command:
