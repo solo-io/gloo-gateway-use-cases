@@ -1,0 +1,41 @@
+apiVersion: networking.gloo.solo.io/v2
+kind: RouteTable
+metadata:
+  name: team1-ingress
+  namespace: ops-team
+spec:
+  hosts:
+    - 'api.example.com'
+  virtualGateways:
+    - name: north-south-gw
+      namespace: ops-team
+  workloadSelectors: []
+  http:
+    - name: team1-ingress
+      matchers:
+      - uri:
+          prefix: /team1
+      delegate:
+        routeTables:
+        - workspace: app1-team
+---
+apiVersion: networking.gloo.solo.io/v2
+kind: RouteTable
+metadata:
+  name: team2-ingress
+  namespace: ops-team
+spec:
+  hosts:
+    - 'api.example.com'
+  virtualGateways:
+    - name: north-south-gw
+      namespace: ops-team
+  workloadSelectors: []
+  http:
+    - name: team2-ingress
+      matchers:
+      - uri:
+          prefix: /team2
+      delegate:
+        routeTables:
+        - workspace: app2-team

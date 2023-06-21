@@ -1,0 +1,27 @@
+apiVersion: networking.gloo.solo.io/v2
+kind: RouteTable
+metadata:
+  name: app2-route
+  namespace: app-2
+spec:
+  workloadSelectors: []
+  http:
+    - name: app2-bar-route
+      matchers:
+      - uri:
+          prefix: /bar
+      forwardTo:
+        destinations:
+          - ref:
+              name: app-2
+              namespace: app-2
+            port:
+              number: 8080
+    - name: app2-catchall-route
+      forwardTo:
+        destinations:
+          - ref:
+              name: app-2
+              namespace: app-2
+            port:
+              number: 8080
