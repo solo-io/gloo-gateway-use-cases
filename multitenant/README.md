@@ -281,12 +281,14 @@ First, we'll remove the Istio configurations from the previous exercise.
 kubectl delete -f ./multitenant/istio
 ```
 
-Second, we'll use a Gloo Platform CRD called `Workspace` to lay down Kubernetes boundaries for multiple teams within the organization. These `Workspace` boundaries can span both Kubernetes clusters and namespaces. In our case we'll define three `Workspaces`, one for the `ops-team` that owns the overall service mesh platform, and two for the application teams, `teama` and `team2`, to whom we want to delegate routing responsibilities.
+Second, we'll use a Gloo Platform CRD called `Workspace` to lay down Kubernetes boundaries for multiple teams within the organization. These `Workspace` boundaries can span both Kubernetes clusters and namespaces. In our case we'll define three `Workspaces`, one for the `ops-team` that owns the overall service mesh platform, and two for the application teams, `app1-team` and `app2-team`, to whom we want to delegate routing responsibilities.
 
 ```sh
 kubectl apply -f ./multitenant/gloo/01-ws-opsteam.yaml
 kubectl apply -f ./multitenant/gloo/02-ws-appteams.yaml
 ```
+
+![Sample Workspace Diagram](https://docs.solo.io/gloo-gateway/latest/img/workspace-persona-ov.svg)
 
 Third, we'll lay down a `VirtualGateway` that selects the Istio Ingress Gateway on our cluster and delegates traffic to `RouteTables` (another Gloo Platform abstraction) that are owned by the `ops-team`.
 
