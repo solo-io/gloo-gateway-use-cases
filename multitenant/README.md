@@ -320,16 +320,16 @@ curl -H "host: api.example.com" localhost:8080/team1/anything
 
 ```json
 {
-  "name": "app-1",
+  "name": "app-1-default",
   "uri": "/team1/anything",
   "type": "HTTP",
   "ip_addresses": [
-    "10.42.0.35"
+    "10.42.0.43"
   ],
-  "start_time": "2023-06-20T20:58:47.635831",
-  "end_time": "2023-06-20T20:58:47.636769",
-  "duration": "939µs",
-  "body": "Hello From App-1",
+  "start_time": "2023-06-21T17:07:08.888625",
+  "end_time": "2023-06-21T17:07:08.888746",
+  "duration": "121.3µs",
+  "body": "Hello From App-1 Default",
   "code": 200
 }
 ```
@@ -340,16 +340,16 @@ curl -H "host: api.example.com" localhost:8080/team2/anything
 
 ```json
 {
-  "name": "app-2",
+  "name": "app-2-default",
   "uri": "/team2/anything",
   "type": "HTTP",
   "ip_addresses": [
-    "10.42.0.36"
+    "10.42.0.46"
   ],
-  "start_time": "2023-06-20T20:58:51.094229",
-  "end_time": "2023-06-20T20:58:51.094508",
-  "duration": "281.3µs",
-  "body": "Hello From App-2",
+  "start_time": "2023-06-21T17:11:29.713765",
+  "end_time": "2023-06-21T17:11:29.713990",
+  "duration": "225.9µs",
+  "body": "Hello From App-2 Default",
   "code": 200
 }
 ```
