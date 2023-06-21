@@ -58,10 +58,10 @@ We'll establish a Kubernetes namespace `ops-team` to hold configuration owned by
 
 ```sh
 # Establish ops-team namespace
-kubectl apply -f common/01-ns-ops.yaml
+kubectl apply -f ./multitenant/common/01-ns-ops.yaml
 # Deploy app-1 and app-2 to separate namespaces
-kubectl apply -f common/02-app-1.yaml
-kubectl apply -f common/03-app-2.yaml
+kubectl apply -f ./multitenant/common/02-app-1.yaml
+kubectl apply -f ./multitenant/common/03-app-2.yaml
 ```
 
 ### Establish an Istio Gateway
@@ -69,7 +69,7 @@ kubectl apply -f common/03-app-2.yaml
 Configure an Istio `Gateway` listening on port 80 for the host `api.example.com`.
 
 ```sh
-kubectl apply -f istio/01-app-gw.yaml
+kubectl apply -f ./multitenant/istio/01-app-gw.yaml
 ```
 
 ### Establish Istio Virtual Services
@@ -108,7 +108,7 @@ spec:
 Let's establish the `VirtualService` for just `app-1` now:
 
 ```sh
-kubectl apply -f istio/02-app1-vs.yaml
+kubectl apply -f ./multitenant/istio/02-app1-vs.yaml
 ```
 
 ### Test the App1 Service
@@ -174,7 +174,7 @@ Note that this scenario takes a turn toward the unexpected as soon as we simulat
 Let's establish the second VS:
 
 ```sh
-kubectl apply -f istio/03-app2-vs.yaml
+kubectl apply -f ./multitenant/istio/03-app2-vs.yaml
 ```
 
 But while the `/bar` route behaves as expected and sends traffic to `app-2`...
@@ -209,7 +209,7 @@ What?!? `Team2` sees its expected requests route to `app-1` instead:
 
 ```json
 {
-  "name": "app-1",
+  "name": "app-1-default",
   "uri": "/goto/app2",
   "type": "HTTP",
   "ip_addresses": [
@@ -218,7 +218,7 @@ What?!? `Team2` sees its expected requests route to `app-1` instead:
   "start_time": "2023-06-20T19:14:49.185166",
   "end_time": "2023-06-20T19:14:49.185291",
   "duration": "125µs",
-  "body": "Hello From App-1",
+  "body": "Hello From App-1 Default",
   "code": 200
 }
 ```
@@ -233,7 +233,7 @@ Taking this step-by-step:
 * Delete `app-1` VS and note that the default route now sends traffic to `app-2`.
 
 ```sh
-kubectl delete -f istio/02-app1-vs.yaml
+kubectl delete -f ./multitenant/istio/02-app1-vs.yaml
 ```
 
 ```sh
@@ -242,7 +242,7 @@ curl -H "host: api.example.com" localhost:8080/goto/app2
 
 ```
 {
-  "name": "app-2",
+  "name": "app-2-default",
   "uri": "/goto/app2",
 ...snip...
 ```
@@ -250,24 +250,24 @@ curl -H "host: api.example.com" localhost:8080/goto/app2
 * Now add back the `app-1` VS and note that the default route does not restart sending traffic to `app-1`; it insteads goes to `app-2` (because that is now the "older" route).
 
 ```sh
-kubectl apply -f istio/02-app1-vs.yaml
+kubectl apply -f ./multitenant/istio/02-app1-vs.yaml
 ```
 
 ```sh
-curl -H "host: api.example.com" localhost:8080/goto/app2
+curl -H "host: api.example.com" localhost:8080/goto/app1
 ```
 
 ```
 {
-  "name": "app-2",
-  "uri": "/goto/app2",
+  "name": "app-2-default",
+  "uri": "/goto/app1",
 ...snip...
 ```
 
 So we conclude that there are a couple of potential issues.
 * Routes can be "lost" when there are `VirtualService` conflicts between resources, even with as few as two tenants.
 
-* Race conditions between `VirtualService` resources, say in parallel branches of CI/CD pipelines, can result in the same logical configurations exhibiting different routing behaviors, and without any indication of a problem.
+* Race conditions between `VirtualService` resources, say in parallel branches of CI/CD pipelines, can result in the same logical configurations exhibiting different routing behaviors, non-deterministically, and without any indication of a problem.
 
 While there are certainly techniques to manage these scenarios in open-source Istio, we would like to avoid them altogether with tenant-friendly techniques like routing delegation. Let's see how we might approach this with a value-added layer like Gloo Platform.
 
@@ -278,37 +278,37 @@ We will use the same example services to build our Gloo Platform example. But we
 First, we'll remove the Istio configurations from the previous exercise.
 
 ```sh
-kubectl delete -f ./istio
+kubectl delete -f ./multitenant/istio
 ```
 
 Second, we'll use a Gloo Platform CRD called `Workspace` to lay down Kubernetes boundaries for multiple teams within the organization. These `Workspace` boundaries can span both Kubernetes clusters and namespaces. In our case we'll define three `Workspaces`, one for the `ops-team` that owns the overall service mesh platform, and two for the application teams, `teama` and `team2`, to whom we want to delegate routing responsibilities.
 
 ```sh
-kubectl apply -f ./gloo/01-ws-opsteam.yaml
-kubectl apply -f ./gloo/02-ws-appteams.yaml
+kubectl apply -f ./multitenant/gloo/01-ws-opsteam.yaml
+kubectl apply -f ./multitenant/gloo/02-ws-appteams.yaml
 ```
 
 Third, we'll lay down a `VirtualGateway` that selects the Istio Ingress Gateway on our cluster and delegates traffic to `RouteTables` (another Gloo Platform abstraction) that are owned by the `ops-team`.
 
 ```sh
-kubectl apply -f ./gloo/03-vg-httpbin.yaml
-```
-
-Fourth, we'll establish `RouteTables`. This is the heart of Gloo's multi-tenant support. The first set of RTs are owned by the `ops-team` select the gateway established in the previous step. These RTs intercept requests with a prefix designated for their respective teams, `/team1` and `/team2`, and then delegate to other RTs that are owned by those teams.
-
-```sh
-kubectl apply -f ./gloo/04-rt-ops-delegating.yaml
-```
-
-Fifth, we configure `RouteTables` that are owned entirely by the application teams. They establish routes that are functionally identical to what we built in the Istio-only example, including with default routes for each team's app. These led to the multi-tenancy issues we observed in the original example. But now, because they are deployed in delegated RTs, the default `/` routes no longer introduce any ambiguity or risk of race conditions in determining which route is appropriate.
-
-```sh
-kubectl apply -f ./gloo/05-rt-team1.yaml,gloo/06-rt-team2.yaml
+kubectl apply -f ./multitenant/gloo/03-vg-httpbin.yaml
 ```
 
 This diagram below depicts how the `VirtualGateway` and `RouteTable` resources manage traffic in Gloo Platform.
 
 ![RouteTable delegation diagram](images/vg-delegating-rts.png)
+
+Fourth, we'll establish `RouteTables`. This is the heart of Gloo's multi-tenant support. The first set of RTs are owned by the `ops-team` select the gateway established in the previous step. These RTs intercept requests with a prefix designated for their respective teams, `/team1` and `/team2`, and then delegate to other RTs that are owned by those teams.
+
+```sh
+kubectl apply -f ./multitenant/gloo/04-rt-ops-delegating.yaml
+```
+
+Fifth, we configure `RouteTables` that are owned entirely by the application teams. They establish routes that are functionally identical to what we built in the Istio-only example, including with default routes for each team's app. These led to the multi-tenancy issues we observed in the original example. But now, because they are deployed in delegated RTs, the default `/` routes no longer introduce any ambiguity or risk of race conditions in determining which route is appropriate.
+
+```sh
+kubectl apply -f ./multitenant/gloo/05-rt-team1.yaml,./multitenant/gloo/06-rt-team2.yaml
+```
 
 ### Test the Gloo Services
 
@@ -320,16 +320,16 @@ curl -H "host: api.example.com" localhost:8080/team1/anything
 
 ```json
 {
-  "name": "app-1",
+  "name": "app-1-default",
   "uri": "/team1/anything",
   "type": "HTTP",
   "ip_addresses": [
-    "10.42.0.35"
+    "10.42.0.43"
   ],
-  "start_time": "2023-06-20T20:58:47.635831",
-  "end_time": "2023-06-20T20:58:47.636769",
-  "duration": "939µs",
-  "body": "Hello From App-1",
+  "start_time": "2023-06-21T17:07:08.888625",
+  "end_time": "2023-06-21T17:07:08.888746",
+  "duration": "121.3µs",
+  "body": "Hello From App-1 Default",
   "code": 200
 }
 ```
@@ -340,16 +340,16 @@ curl -H "host: api.example.com" localhost:8080/team2/anything
 
 ```json
 {
-  "name": "app-2",
+  "name": "app-2-default",
   "uri": "/team2/anything",
   "type": "HTTP",
   "ip_addresses": [
-    "10.42.0.36"
+    "10.42.0.46"
   ],
-  "start_time": "2023-06-20T20:58:51.094229",
-  "end_time": "2023-06-20T20:58:51.094508",
-  "duration": "281.3µs",
-  "body": "Hello From App-2",
+  "start_time": "2023-06-21T17:11:29.713765",
+  "end_time": "2023-06-21T17:11:29.713990",
+  "duration": "225.9µs",
+  "body": "Hello From App-2 Default",
   "code": 200
 }
 ```

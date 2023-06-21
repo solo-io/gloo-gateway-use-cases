@@ -17,11 +17,11 @@ spec:
               namespace: app-2
             port:
               number: 8080
-    - name: app2-catchall-route
+    - name: app2-default-route
       forwardTo:
         destinations:
           - ref:
-              name: app-2
+              name: app-2-default
               namespace: app-2
             port:
               number: 8080
