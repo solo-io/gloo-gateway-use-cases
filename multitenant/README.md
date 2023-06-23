@@ -72,16 +72,16 @@ Configure an Istio `Gateway` listening on port 80 for the host `api.example.com`
 kubectl apply -f ./multitenant/istio/01-app-gw.yaml
 ```
 
-### Establish Istio Virtual Services
+### Establish an Istio Virtual Service
 
-We'll configure two separate `VirtualService`s on our Gateway. Each VS will have two routes, one that matches on a specifix URL prefix and another catch-all route for all other requests. Establishing default routes on VSes is considered an Istio [best practice](https://istio.io/latest/docs/ops/best-practices/traffic-management/#set-default-routes-for-services).
+We'll configure two separate `VirtualService`s on our Gateway, one for each of our imaginary application teams. Each of these VSes will have two routes, one that matches on a specific URL prefix and another catch-all route for all other requests. Establishing default routes on VSes is considered an Istio [best practice](https://istio.io/latest/docs/ops/best-practices/traffic-management/#set-default-routes-for-services).
 
 ```yaml
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   name: app-vs-1
-  namespace: ops-team
+  namespace: app-1
 spec:
   hosts:
   - "api.example.com"
@@ -145,7 +145,7 @@ server: istio-envoy
 }
 ```
 
-Requests that don't match `/foo` are also picked up by `app-1` as expected. For example:
+Requests that don't match `/foo` are also picked up by `app-1-default` as expected. For example:
 
 ```sh
 curl -H "host: api.example.com" localhost:8080/hit/default/route
@@ -153,23 +153,23 @@ curl -H "host: api.example.com" localhost:8080/hit/default/route
 
 ```json
 {
-  "name": "app-1",
+  "name": "app-1-default",
   "uri": "/hit/default/route",
   "type": "HTTP",
   "ip_addresses": [
-    "10.42.0.35"
+    "10.42.0.25"
   ],
-  "start_time": "2023-06-20T18:48:45.221567",
-  "end_time": "2023-06-20T18:48:45.221679",
-  "duration": "112.1µs",
-  "body": "Hello From App-1",
+  "start_time": "2023-06-23T14:25:03.015689",
+  "end_time": "2023-06-23T14:25:03.018877",
+  "duration": "3.1923ms",
+  "body": "Hello From App-1 Default",
   "code": 200
 }
 ```
 
 ### Configure and Test a Second VirtualService
 
-Note that this scenario takes a turn toward the unexpected as soon as we simulate a second project team introducing a second VS listening on the same `api.example.com` host. In this case, we establish valid routes that capture requests for `/bar` and also a default route. Istio accepts this configuration without errors, but the ambiguity for the default routes creates a problem.
+Note that this scenario takes a turn toward the unexpected as soon as we simulate a second project team introducing a second VS in a second namespace, but listening on the same `api.example.com` host. In this case, we establish valid routes that capture requests for `/bar` and also a default route. Istio accepts this configuration without errors, but the ambiguity for the default routes creates a problem.
 
 Let's establish the second VS:
 
@@ -199,13 +199,13 @@ curl -H "host: api.example.com" localhost:8080/bar
 }
 ```
 
-...It's as if the default route on `app-2` doesn't exist. Those requests that `team2` expect to be routed to their app go to `app-1` instead. And there's no indication of an error in the `Gateway` or `VirtualService` resources.
+...It's as if the default route on `app-2` doesn't exist. Now that we're working in a "shared environment", those requests that `team2` expect to be routed to their app go to `app-1` instead. And there's no indication of an error in the `Gateway` or `VirtualService` resources.
 
 ```sh
 curl -H "host: api.example.com" localhost:8080/goto/app2
 ```
 
-What?!? `Team2` sees its expected requests route to `app-1` instead:
+WHAT?!? `Team2` sees its expected requests route to `app-1`:
 
 ```json
 {
@@ -230,7 +230,7 @@ Why is Istio ignoring the default route for our `team2`? This is actually a [doc
 We can see this by deleting the `app-1` VS and then re-applying it. 
 
 Taking this step-by-step:
-* Delete `app-1` VS and note that the default route now sends traffic to `app-2`.
+* Delete `app-1` VS and note that the default route now sends traffic to `app-2` as expected.
 
 ```sh
 kubectl delete -f ./multitenant/istio/02-app1-vs.yaml
@@ -247,7 +247,7 @@ curl -H "host: api.example.com" localhost:8080/goto/app2
 ...snip...
 ```
 
-* Now add back the `app-1` VS and note that the default route does not restart sending traffic to `app-1`; it insteads goes to `app-2` (because that is now the "older" route).
+* Now add back the `app-1` VS and note that the default route does not restart sending traffic to `app-1`; it insteads goes to `app-2` (because that is now the "older" of the two routes).
 
 ```sh
 kubectl apply -f ./multitenant/istio/02-app1-vs.yaml
@@ -269,7 +269,7 @@ So we conclude that there are a couple of potential issues.
 
 * Race conditions between `VirtualService` resources, say in parallel branches of CI/CD pipelines, can result in the same logical configurations exhibiting different routing behaviors, non-deterministically, and without any indication of a problem.
 
-While there are certainly techniques to manage these scenarios in open-source Istio, we would like to avoid them altogether with tenant-friendly techniques like routing delegation. Let's see how we might approach this with a value-added layer like Gloo Platform.
+While there are certainly techniques to manage these scenarios in open-source Istio, we would like to avoid them altogether with tenant-friendly configuration patterns like routing delegation. Let's see how we might approach this with a value-added layer like Gloo Platform.
 
 ## Manage Multiple Tenants with Gloo Platform
 
