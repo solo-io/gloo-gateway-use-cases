@@ -283,6 +283,35 @@ kubectl delete -f ./multitenant/istio
 
 Second, we'll use a Gloo Platform CRD called `Workspace` to lay down Kubernetes boundaries for multiple teams within the organization. These `Workspace` boundaries can span both Kubernetes clusters and namespaces. In our case we'll define three `Workspaces`, one for the `ops-team` that owns the overall service mesh platform, and two for the application teams, `app1-team` and `app2-team`, to whom we want to delegate routing responsibilities.
 
+Below is a sample Workspace and its companion WorkspaceSettings for the app1-team. Note that it includes the app-1 Kubernetes namespace across all clusters. While there is only a single cluster present in this example, this Workspace would dynamically expand to include that same namespace on other clusters added to our mesh in the future. Note also that via the WorkspaceSettings, tenants can choose precisely what resources they are willing to export from their workspace and who is able to consume them. See the [API reference](https://docs.solo.io/gloo-gateway/latest/reference/api/workspace_settings/) for more details on workspace import and export.
+
+```yaml
+apiVersion: admin.gloo.solo.io/v2
+kind: Workspace
+metadata:
+  name: app1-team
+  namespace: gloo-mesh
+  labels:
+    team-category: app-team
+spec:
+  workloadClusters:
+  - name: '*'
+    namespaces:
+    - name: app-1
+---
+apiVersion: admin.gloo.solo.io/v2
+kind: WorkspaceSettings
+metadata:
+  name: app1-team
+  namespace: app-1
+spec:
+  exportTo:
+    - workspaces:
+      - name: ops-team
+```
+
+Let's apply the `Workspace` definitions now:
+
 ```sh
 kubectl apply -f ./multitenant/gloo/01-ws-opsteam.yaml
 kubectl apply -f ./multitenant/gloo/02-ws-appteams.yaml
@@ -300,21 +329,57 @@ This diagram below depicts how the `VirtualGateway` and `RouteTable` resources m
 
 ![RouteTable delegation diagram](images/vg-delegating-rts.png)
 
-Fourth, we'll establish `RouteTables`. This is the heart of Gloo's multi-tenant support. The first set of RTs are owned by the `ops-team` select the gateway established in the previous step. These RTs intercept requests with a prefix designated for their respective teams, `/team1` and `/team2`, and then delegate to other RTs that are owned by those teams.
+Fourth, we'll establish `RouteTables`. This is the heart of Gloo's multi-tenant support. The first set of RTs are owned by the `ops-team` select the gateway established in the previous step. These RTs intercept requests with a prefix designated for their respective teams, `/team1` and `/team2`, and then delegate to other RTs that are owned exclusively by those teams.
 
 ```sh
 kubectl apply -f ./multitenant/gloo/04-rt-ops-delegating.yaml
 ```
 
-Fifth, we configure `RouteTables` that are owned entirely by the application teams. They establish routes that are functionally identical to what we built in the Istio-only example, including with default routes for each team's app. These led to the multi-tenancy issues we observed in the original example. But now, because they are deployed in delegated RTs, the default `/` routes no longer introduce any ambiguity or risk of race conditions in determining which route is appropriate.
+Fifth, we'll configure `RouteTables` that are owned entirely by the application teams. They establish routes that are functionally identical to what we built in the Istio-only example, including with default routes for each team's app. These led to the multi-tenancy issues we observed in the original example. But now, because they are deployed in delegated RTs, the default `/` routes no longer introduce any ambiguity or risk of race conditions in determining which route is appropriate.
 
 ```sh
 kubectl apply -f ./multitenant/gloo/05-rt-team1.yaml,./multitenant/gloo/06-rt-team2.yaml
 ```
 
+This is an example of one of the RouteTables owned by an application team.
+
+```yaml
+apiVersion: networking.gloo.solo.io/v2
+kind: RouteTable
+metadata:
+  name: app1-route
+  namespace: app-1
+spec:
+  workloadSelectors: []
+  http:
+    - name: app1-foo-route
+      matchers:
+      - uri:
+          prefix: /foo
+      forwardTo:
+        destinations:
+          - ref:
+              name: app-1
+              namespace: app-1
+            port:
+              number: 8080
+    - name: app1-default-route
+      forwardTo:
+        destinations:
+          - ref:
+              name: app-1-default
+              namespace: app-1
+            port:
+              number: 8080
+```
+
+By using an intermediate delegating RT, we have completely removed the risk of conflicting routes from multiple tenants leading to confusion in Istio's routing choices.
+
 ### Test the Gloo Services
 
-Now Gloo route delegation allows application teams to operate independently with their routing decisions. Requests for either `team1` or `team2` are routed exactly as expected.
+Now Gloo route delegation allows application teams to operate independently with their routing decisions. Requests for either `team1` or `team2` are routed exactly as expected. 
+
+Let's prove this out with a couple of curl commands. The first routes a request that would have previously triggered a conflict to the `app-1-default` service as expected.
 
 ```sh
 curl -H "host: api.example.com" localhost:8080/team1/anything
@@ -335,6 +400,8 @@ curl -H "host: api.example.com" localhost:8080/team1/anything
   "code": 200
 }
 ```
+
+The second test routes to the `app-2-default` service, again just as expected.
 
 ```sh
 curl -H "host: api.example.com" localhost:8080/team2/anything
@@ -360,25 +427,23 @@ curl -H "host: api.example.com" localhost:8080/team2/anything
 
 In addition to supporting unambiguous multi-tenant routing, Gloo Platform also allows you to observe what's happening among the tenants of your service mesh. A convenient way to visualize traffic flows and debug using Gloo Platform is to use the flow graph bundled with the Gloo Platform UI.
 
-An easy way to enable this at development time is to port-forward the interface of the gloo-mesh-ui service, like this:
+An easy way to enable this at development time is to port-forward the interface of the `gloo-mesh-ui` service, like this:
 
 ```sh
 kubectl port-forward -n gloo-mesh svc/gloo-mesh-ui 8090:8090 --context gloo
 ```
 
-Now point your browser at http://localhost:8090 and switch to Graph on the left navigation menu. Next to the `Filter By:` label, be sure to select all Workspaces, all Clusters, and all Namespaces. After a few seconds to allow for telemetry collection and processing, you’ll see a graph like the one below showing the istio-ingressgateway delegating 100% of its requests to the external httpbin.org service. (You may also want to fire off a few additional curl commands like the one above to the gateway endpoint in order to make the statistics slightly more interesting.)
-
-This allows you to see the traffic moving between the ingress gateway and the four services we established, across all three workspaces.
+Now point your browser at http://localhost:8090 and switch to Graph on the left navigation menu. Next to the `Filter By:` label, be sure to select all Workspaces, all Clusters, and all Namespaces. After a few seconds to allow for telemetry collection and processing, you’ll see a graph like the one below. It shows you the traffic moving between the ingress gateway and the four services we established, across all three workspaces. (You may also want to fire off a few additional curl commands like the one above to the gateway endpoint in order to make the statistics slightly more interesting.)
 
 ![Multitenant Observability Top-Level](images/multitenant-observe-top.png)
 
-You can select individual services to drill down on each one's usage metrics, error rates, and the like.
+You can also select individual services to drill down on each one's usage metrics, error rates, and the like.
 
 ![Multitenant Observability Single Service](images/multitenant-observe-app1.png)
 
 ## Exercise Cleanup
 
-If you used the setup.sh script described earlier to establish your Gloo Platform environment for this exercise, then there is an easy way to tear down this environment as well. Just run this command:
+If you used the setup.sh script described earlier to establish your Gloo Platform environment for this exercise, then there is an easy way to tear down the environment as well. Just run this command:
 
 ```sh
 ./setup/teardown.sh
