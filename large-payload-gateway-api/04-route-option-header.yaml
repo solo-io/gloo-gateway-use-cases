@@ -1,0 +1,17 @@
+apiVersion: gateway.solo.io/v1
+kind: RouteOption
+metadata:
+  name: route-option-httpbin
+  namespace: httpbin
+spec:
+  options:
+    stagedTransformations:
+      early:
+        requestTransforms:
+          - matcher:
+              prefix: /
+            requestTransformation:
+              transformationTemplate:
+                headers:
+                  X-My-Custom-Header:
+                    text: 'my-custom-value'
