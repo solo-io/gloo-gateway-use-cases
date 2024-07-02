@@ -1,0 +1,13 @@
+apiVersion: enterprise.gloo.solo.io/v1
+kind: AuthConfig
+metadata:
+  name: basic-auth
+spec:
+  configs:
+    - basicAuth:
+        apr:
+          users:
+            test:
+              hashedPassword: NLFTUNkXaht0g/2GJjUM51
+              salt: n28wuo5p
+        realm: gloo
