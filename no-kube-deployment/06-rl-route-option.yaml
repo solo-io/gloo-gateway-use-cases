@@ -22,6 +22,7 @@ spec:
     - "api.example.com"
   rules:
     - filters:
+        # Extend our existing route using our new RateLimitConfig
         - type: ExtensionRef
           extensionRef:
             group: gateway.solo.io

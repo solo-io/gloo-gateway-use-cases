@@ -11,6 +11,8 @@ spec:
     allowedRoutes:
       namespaces:
         from: Same
+  # New Gateway listener to handle HTTPS traffic on port 8443 using certs
+  # created earlier
   - protocol: HTTPS
     port: 8443
     name: https
