@@ -1,0 +1,35 @@
+apiVersion: gateway.solo.io/v1
+kind: RouteOption
+metadata:
+  name: ratelimit
+  namespace: default
+spec:
+  options:
+    rateLimitConfigs:
+      refs:
+      - name: ratelimit-config
+        namespace: gloo-system
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: test
+  namespace: default
+spec:
+  parentRefs:
+    - name: http-gateway
+  hostnames:
+    - "api.example.com"
+  rules:
+    - filters:
+        # Extend our existing route using our new RateLimitConfig
+        - type: ExtensionRef
+          extensionRef:
+            group: gateway.solo.io
+            kind: RouteOption
+            name: ratelimit
+      backendRefs:
+        - name: httpbin
+          port: 80
+          kind: Upstream
+          group: gloo.solo.io
