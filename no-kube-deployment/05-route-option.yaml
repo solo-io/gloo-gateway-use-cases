@@ -1,0 +1,16 @@
+apiVersion: gateway.solo.io/v1
+kind: RouteOption
+metadata:
+  name: basic-auth
+  namespace: default
+spec:
+  # Apply this basic-auth RouteOption to all routes in the test HTTPRoute
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: test
+  options:
+    extauth:
+      configRef:
+        name: basic-auth
+        namespace: default

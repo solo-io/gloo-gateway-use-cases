@@ -1,0 +1,16 @@
+apiVersion: gateway.solo.io/v1
+kind: RouteOption
+metadata:
+  name: ratelimit
+  namespace: default
+spec:
+  # Apply this ratelimit RouteOption to all routes in the test HTTPRoute
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: test
+  options:
+    rateLimitConfigs:
+      refs:
+      - name: ratelimit-config
+        namespace: gloo-system
