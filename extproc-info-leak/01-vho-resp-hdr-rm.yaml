@@ -1,0 +1,15 @@
+apiVersion: gateway.solo.io/v1
+kind: VirtualHostOption
+metadata:
+  name: header-manipulation
+  namespace: gloo-system
+spec:
+  options:
+    headerManipulation:
+      responseHeadersToRemove: ["server", "x-envoy-upstream-service-time"]
+      # responseHeadersToRemove: ["content-length", "content-type"]
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: http
+    namespace: gloo-system 

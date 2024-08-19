@@ -1,0 +1,14 @@
+apiVersion: gateway.solo.io/v1
+kind: HttpListenerOption
+metadata:
+  name: server-name
+  namespace: gloo-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: http
+  options:
+    httpConnectionManagerSettings:
+      serverHeaderTransformation: PASS_THROUGH  # Return our server header value to client
+      # serverName: "im-not-telling"  # Use this setting to obfuscate the header instead

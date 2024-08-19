@@ -1,0 +1,18 @@
+apiVersion: gateway.solo.io/v1
+kind: VirtualHostOption
+metadata:
+  name: pass-instructions-header
+  namespace: gloo-system
+spec:
+  options:
+    transformations:
+      responseTransformation:
+        transformationTemplate:
+          headers:
+            instructions:
+              text: '{{ request_header("x-extproc-instructions") }}'
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: http
+    namespace: gloo-system
