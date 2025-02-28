@@ -5,3 +5,9 @@ The scripts here presume you have an available cluster without Gloo Gateway inst
 
 ## Testing
 Run `chainsaw test` to execute tests.
+
+### A note about testing
+Tests depend on the [netshoot](https://github.com/nicolaka/netshoot) pod to be created in the default namespace.  This allows testing ingress without the need for port-forwarding the service and has the advantage that tests will work in an air-gapped environment.  
+
+## Cleaning up 
+If you need to clean up your environment, run the uninstall.sh script.
