@@ -7,3 +7,4 @@ glooctl uninstall --all
 kubectl delete -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
 
 kubectl delete ns httpbin
+kubectl delete deployment netshoot
