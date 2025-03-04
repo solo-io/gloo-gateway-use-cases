@@ -1,0 +1,149 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: faults-routeoption-test
+spec:
+  steps:
+  - try:
+    - apply:
+        dryRun: true
+        resource:
+          apiVersion: gateway.solo.io/v1
+          kind: RouteOption
+          metadata:
+            name: faults
+            namespace: httpbin
+          spec:
+            options:
+              faults:
+                abort:
+                  percentage: 50
+        expect:
+        - check:
+            ($error != null): true
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: bad-retries-test
+spec:
+  steps:
+  - try:
+    - apply:
+        dryRun: true
+        resource:
+          apiVersion: gateway.solo.io/v1
+          kind: VirtualHostOption
+          metadata:
+            name: bad-retries
+          spec:
+            targetRefs:
+            - group: gateway.networking.k8s.io
+              kind: Gateway
+              name: http
+              sectionName: http
+            options:
+              retries:
+                retryOn: "5xx"
+                retryBackOff:
+                  # An error is expected when the baseInterval is greater than the maxInterval
+                  baseInterval: "1s"
+                  maxInterval: "1ms"
+        expect:
+        - check:
+            ($error != null): true
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: curl-faults-routeoption-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -k -XPOST -d '{"request":{"uid":"1234","kind":{"group":"gateway.solo.io","version":"v1","kind":"RouteOption"},"resource":{"group":"","version":"","resource":""},"name":"faults","namespace":"httpbin","operation":"CREATE","userInfo":{},"object": { "apiVersion": "gateway.solo.io/v1", "kind": "RouteOption", "metadata": { "name": "faults", "namespace": "httpbin" }, "spec": { "options": { "faults": { "abort": { "percentage": "50" } }}}}}}' -s https://gloo.gloo-system:443/validation -H "Content-Type: application/json"
+        outputs:
+        - name: returnbody
+          value: (json_parse($stdout))
+    - assert:
+        resource:
+          ($returnbody): 
+            response:
+              allowed: false
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: curl-fixed-faults-routeoption-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -k -XPOST -d '{"request":{"uid":"1234","kind":{"group":"gateway.solo.io","version":"v1","kind":"RouteOption"},"resource":{"group":"","version":"","resource":""},"name":"faults","namespace":"httpbin","operation":"CREATE","userInfo":{},"object": { "apiVersion": "gateway.solo.io/v1", "kind": "RouteOption", "metadata": { "name": "faults", "namespace": "httpbin" }, "spec": { "options": { "faults": { "abort": { "percentage": "50", "httpStatus": "503" } }}}}}}' -s https://gloo.gloo-system:443/validation -H "Content-Type: application/json"
+        outputs:
+        - name: returnbody
+          value: (json_parse($stdout))
+    - assert:
+        resource:
+          ($returnbody): 
+            response:
+              allowed: true
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: curl-bad-retries-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -k -XPOST -d '{"request":{"uid":"1234","kind":{"group":"gateway.solo.io","version":"v1","kind":"VirtualHostOption"},"resource":{"group":"","version":"","resource":""},"name":"bad-retries","namespace":"httpbin","operation":"CREATE","userInfo":{},"object": { "apiVersion": "gateway.solo.io/v1", "kind": "VirtualHostOption", "metadata": { "name": "bad-retries", "namespace": "httpbin" }, "spec": { "targetRefs": [{ "group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "http", "sectionName": "http" }], "options": { "retries": { "retryOn": "5xx", "retryBackOff": { "baseInterval": "1s", "maxInterval":"1ms"} }}}}}}' -s https://gloo.gloo-system:443/validation -H "Content-Type: application/json"
+        outputs:
+        - name: returnbody
+          value: (json_parse($stdout))
+    - assert:
+        resource:
+          ($returnbody): 
+            response:
+              allowed: false
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: curl-missingunit-bad-retries-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -k -XPOST -d '{"request":{"uid":"1234","kind":{"group":"gateway.solo.io","version":"v1","kind":"VirtualHostOption"},"resource":{"group":"","version":"","resource":""},"name":"bad-retries","namespace":"httpbin","operation":"CREATE","userInfo":{},"object": { "apiVersion": "gateway.solo.io/v1", "kind": "VirtualHostOption", "metadata": { "name": "bad-retries", "namespace": "httpbin" }, "spec": { "targetRefs": [{ "group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "http", "sectionName": "http" }], "options": { "retries": { "retryOn": "5xx", "retryBackOff": { "baseInterval": "1s", "maxInterval":"5"} }}}}}}' -s https://gloo.gloo-system:443/validation -H "Content-Type: application/json"
+        outputs:
+        - name: returnbody
+          value: (json_parse($stdout))
+    - assert:
+        resource:
+          ($returnbody): 
+            response:
+              allowed: false
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: curl-fixed-bad-retries-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -k -XPOST -d '{"request":{"uid":"1234","kind":{"group":"gateway.solo.io","version":"v1","kind":"VirtualHostOption"},"resource":{"group":"","version":"","resource":""},"name":"bad-retries","namespace":"httpbin","operation":"CREATE","userInfo":{},"object": { "apiVersion": "gateway.solo.io/v1", "kind": "VirtualHostOption", "metadata": { "name": "bad-retries", "namespace": "httpbin" }, "spec": { "targetRefs": [{ "group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "http", "sectionName": "http" }], "options": { "retries": { "retryOn": "5xx", "retryBackOff": { "baseInterval": "1s", "maxInterval":"5s"} }}}}}}' -s https://gloo.gloo-system:443/validation -H "Content-Type: application/json"
+        outputs:
+        - name: returnbody
+          value: (json_parse($stdout))
+    - assert:
+        resource:
+          ($returnbody): 
+            response:
+              allowed: true
