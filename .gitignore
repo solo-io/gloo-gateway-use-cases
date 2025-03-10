@@ -1,3 +1,6 @@
 large-payloads/1m-payload.txt
 large-payloads/10m-payload.txt
 large-payloads/100m-payload.txt
+images.txt
+*crt
+*key

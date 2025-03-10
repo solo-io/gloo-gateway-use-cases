@@ -1,0 +1,28 @@
+apiVersion: k3d.io/v1alpha3
+kind: Simple
+name: gloo
+image: rancher/k3s:v1.30.8-k3s1
+network: k3d-cluster-network
+ports:
+  - port: 80:80
+    nodeFilters:
+      - loadbalancer
+  - port: 443:443
+    nodeFilters:
+      - loadbalancer
+registries:
+  use:
+    - k3d-myregistry.localhost:5000    
+options:
+  k3d:
+    wait: true
+    timeout: "60s"
+    disableLoadbalancer: false
+  k3s:
+    extraArgs:
+      - arg: --disable=traefik
+        nodeFilters:
+          - server:*
+  kubeconfig:
+    updateDefaultKubeconfig: true
+    switchCurrentContext: true

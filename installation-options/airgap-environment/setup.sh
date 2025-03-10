@@ -1,4 +1,12 @@
-#!/bin/bash
+#!/bin/sh
+
+echo "*************************************************************"
+echo "* This script will setup a Gloo Gateway Enterprise Edition  *"
+echo "* airgap environment.                                       *"
+echo "*                                                           *"
+echo "* We will begin by creating a local k3d cluster with a      *"
+echo "* registry which will be exposed on localhost port 5000.    *"
+echo "*************************************************************"
 
 # First, need to check for the existence of a license key.
 if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
@@ -6,12 +14,32 @@ if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.5
+GLOO_VERSION=1.18.6
+registry=k3d-myregistry.localhost:5000
+registry_localhost=localhost:5000
 
-# The script meat.
-echo "Installing the latest Gloo CLI..."
-curl -sL https://run.solo.io/gloo/install | sh
-export PATH=$HOME/.gloo/bin:$PATH
+# Create a k3d cluster with a local registry
+echo "Creating local cluster..."
+docker network create k3d-cluster-network 
+k3d registry create myregistry.localhost --port 5000
+k3d cluster create --config gloo.yaml
+
+echo "Retrieving Gloo Gateway images..."
+helm template glooe/gloo-ee --version $GLOO_VERSION --set-string license_key=$GLOO_GATEWAY_LICENSE_KEY | yq e '. | .. | select(has("image"))' - | grep image: | sed 's/image: //' | sed -e 's/@sha256.*//' > images.txt
+cat images.txt | while read image; do 
+    docker pull $image; 
+done
+
+cat images.txt | while read image; do
+  src=$(echo $image | sed 's/^docker\.io\///g' | sed 's/^library\///g')
+  dst=$(echo $image | awk -F/ '{ if(NF>3){ print $3"/"$4}else{if(NF>2){ print $2"/"$3}else{if($1=="docker.io"){ print $2}else{print $1"/"$2}}}}' | sed 's/^library\///g')
+  
+  id=$(docker images --format "{{.ID}}" $src)
+
+  docker tag $id ${registry_localhost}/$dst
+  docker push ${registry_localhost}/$dst
+done
+
 
 # Installing Gloo Gateway Enterprise Edition
 echo "Installing Kubernetes Gateway API CRDs..."
@@ -19,11 +47,14 @@ kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/downloa
 echo "Installing Gloo Gateway Enterprise Edition..."
 helm repo add glooe https://storage.googleapis.com/gloo-ee-helm
 helm repo update
-helm install -n gloo-system gloo glooe/gloo-ee \
+helm upgrade --install -n gloo-system gloo glooe/gloo-ee \
 --create-namespace \
 --set-string license_key=${GLOO_GATEWAY_LICENSE_KEY} \
 --version ${GLOO_VERSION} \
 -f -<< EOF
+global:
+  image:
+    registry: ${registry}
 gloo:
   discovery:
     enabled: false
