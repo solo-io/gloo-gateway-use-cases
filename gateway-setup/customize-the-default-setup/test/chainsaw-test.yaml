@@ -1,0 +1,69 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: custom-gateway-label-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl get pods -l app.kubernetes.io/name=gloo-proxy-custom -n gloo-system -o jsonpath='{.items[0].metadata.labels.gateway}'
+        outputs:
+        - name: labelvalue
+          value: ($stdout)
+    - assert:
+        resource:
+          ($labelvalue): custom
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: custom-gateway-securitycontext-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl get pods -l app.kubernetes.io/name=gloo-proxy-custom -n gloo-system -o jsonpath='{.items[0].spec.securityContext}'
+        outputs:
+        - name: securityContext
+          value: (json_parse($stdout))
+    - assert:
+        resource:
+          ($securityContext): 
+            fsGroup: 50000
+            runAsUser: 50000
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: custom-gateway-svc-labels-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl get svc gloo-proxy-custom -n gloo-system -o jsonpath='{.metadata.labels.gloo}'
+        outputs:
+        - name: labelvalue
+          value: ($stdout)
+    - assert:
+        resource:
+          ($labelvalue): kube-gateway
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: custom-gateway-svc-nodeport-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl get svc gloo-proxy-custom -n gloo-system -o jsonpath='{.spec.type}'
+        outputs:
+        - name: svctype
+          value: ($stdout)
+    - assert:
+        resource:
+          ($svctype): NodePort
