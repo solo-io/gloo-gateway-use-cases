@@ -6,7 +6,7 @@ if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.5
+GLOO_VERSION=1.18.7
 
 SCRIPT_DIR=$(dirname "$0")
 

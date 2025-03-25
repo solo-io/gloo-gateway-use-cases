@@ -1,6 +1,6 @@
 #!/bin/bash
 
-GLOO_GATEWAY_VERSION=1.18.12 # OSS version
+GLOO_GATEWAY_VERSION=1.18.13 # OSS version
 
 # Install Argo CD
 echo "Installing Argo CD"

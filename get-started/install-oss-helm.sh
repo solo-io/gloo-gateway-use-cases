@@ -1,5 +1,5 @@
 #!/bin/sh
-GLOO_VERSION=1.18.9
+GLOO_VERSION=1.18.13
 
 # The script meat.
 echo "Installing the latest Gloo CLI..."

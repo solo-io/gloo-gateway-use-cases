@@ -14,7 +14,7 @@ if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.6
+GLOO_VERSION=1.18.7
 registry=k3d-myregistry.localhost:5000
 registry_localhost=localhost:5000
 

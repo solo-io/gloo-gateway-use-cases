@@ -4,3 +4,4 @@ large-payloads/100m-payload.txt
 images.txt
 *crt
 *key
+iam-policy.json
