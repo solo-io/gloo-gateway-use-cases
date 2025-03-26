@@ -38,4 +38,4 @@ eksctl delete iamserviceaccount \
 aws iam delete-policy --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${IAM_POLICY_NAME}
 
 # Execute installation script from get-started
-$SCRIPT_DIR/../../../../get-started/uninstall.sh
+$SCRIPT_DIR/../../../../../get-started/uninstall.sh

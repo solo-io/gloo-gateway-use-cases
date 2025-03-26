@@ -27,7 +27,7 @@ GLOO_VERSION=1.18.7
 SCRIPT_DIR=$(dirname "$0")
 
 # Execute installation script from get-started
-$SCRIPT_DIR/../../../../get-started/install-ee-helm.sh
+$SCRIPT_DIR/../../../../../get-started/install-ee-helm.sh
 
 echo "Completed basic installation"
 
@@ -79,81 +79,56 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
 
 sleep 60
 
-echo "Creating a new Gateway for simple HTTP ALB"
+echo "Creating a new GatewayParameters for simple HTTP NLB"
+kubectl apply -f- <<EOF
+apiVersion: gateway.gloo.solo.io/v1alpha1
+kind: GatewayParameters
+metadata:
+  name: custom-gw-params
+  namespace: gloo-system
+spec:
+  kube:
+    service:
+      extraAnnotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: "external"
+        service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+        service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+EOF
 
 kubectl apply -f- <<EOF
 kind: Gateway
 apiVersion: gateway.networking.k8s.io/v1
 metadata:
-  name: alb
+  name: aws-cloud
   namespace: gloo-system
+  annotations:
+    gateway.gloo.solo.io/gateway-parameters-name: "custom-gw-params"
 spec:
   gatewayClassName: gloo-gateway
   listeners:
   - protocol: HTTP
-    port: 8080
+    port: 80
     name: http
     allowedRoutes:
       namespaces:
         from: All
 EOF
 
-kubectl apply -f- <<EOF
-apiVersion: gateway.solo.io/v1
-kind: HttpListenerOption
-metadata:
-  name: alb-healthcheck
-  namespace: gloo-system
-spec:
-  targetRefs:
-  - group: gateway.networking.k8s.io
-    kind: Gateway
-    name: alb
-  options:
-    healthCheck:
-      path: "/healthz"
-EOF
-
-echo "Creating an Ingress for the ALB"
-kubectl apply -f- <<EOF
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  namespace: gloo-system
-  name: alb
-  annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: instance
-    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP #--HTTPS by default
-    alb.ingress.kubernetes.io/healthcheck-path: "/healthz"
-spec:
-  ingressClassName: alb
-  rules:
-    - http:
-        paths:
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              name: gloo-proxy-alb
-              port:
-                number: 8080
-EOF
 
 kubectl apply -f- <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: httpbin-alb
+  name: httpbin-elb
   namespace: httpbin
   labels:
     example: httpbin-route
 spec:
   parentRefs:
-    - name: alb
+    - name: aws-cloud
       namespace: gloo-system
   hostnames:
-    - "albtest.com"
+    - "www.nlb.com"
   rules:
     - backendRefs:
         - name: httpbin
