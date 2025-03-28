@@ -5,3 +5,4 @@ images.txt
 *crt
 *key
 iam-policy.json
+istio-1.*
