@@ -99,3 +99,37 @@ spec:
     - assert:
         resource:
           ($statuscode): "response_code=200\n"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-productpage-to-ratings
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl -n bookinfo debug -i pods/$(kubectl get pod -l app=productpage -A -o jsonpath='{.items[0].metadata.name}') --image=curlimages/curl -- curl -i -w '%{http_code}' -o /dev/null -s http://ratings:9080/ratings/1 | tail -1
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-productpage-ingress
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/productpage
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
