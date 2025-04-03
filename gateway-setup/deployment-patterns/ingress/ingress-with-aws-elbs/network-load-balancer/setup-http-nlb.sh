@@ -22,7 +22,7 @@ if [[ -z "${AWS_ACCOUNT_ID}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.7
+GLOO_VERSION=1.18.8
 
 SCRIPT_DIR=$(dirname "$0")
 

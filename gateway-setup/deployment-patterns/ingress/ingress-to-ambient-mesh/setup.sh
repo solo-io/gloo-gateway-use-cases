@@ -6,7 +6,7 @@ if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.7
+GLOO_VERSION=1.18.8
 
 SCRIPT_DIR=$(dirname "$0")
 
@@ -28,7 +28,7 @@ fi
 export ISTIO_VERSION=1.24.2
 curl -L https://istio.io/downloadIstio | ISTIO_VERSION=${ISTIO_VERSION} sh -
 cd istio-${ISTIO_VERSION}
-export PATH=$PWD/bin:$PATH
+export PATH=$PWD/istio-${ISTIO_VERSION}/bin:$PATH
 
 helm install gloo-operator oci://us-docker.pkg.dev/solo-public/gloo-operator-helm/gloo-operator \
 --version 0.1.0 \
