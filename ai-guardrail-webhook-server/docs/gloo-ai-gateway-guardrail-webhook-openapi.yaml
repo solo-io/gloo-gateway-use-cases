@@ -1,29 +1,40 @@
 openapi: 3.1.0
 info:
-  title: Gloo AI Gateway GuardRail Webhook API
+  title: Gloo AI Gateway Guardrail Webhook API
   version: 0.1.0
+  description: |
+    This API specification defines the webhook endpoints for the Gloo AI Gateway Guardrail feature.
+    The Guardrail feature provides a way to intercept and process both requests to and responses from
+    Large Language Models (LLMs). This way, you can implement your own advanced guardrails and content filtering.
+
+    The Guardrail feature consists of two main webhook endpoints:
+    1. `/request` - Processes request prompts before they are sent to the LLM
+    2. `/response` - Processes responses from the LLM before they are sent back to the user
+
+    Each endpoint supports different actions:
+    - `PassAction`: Allow the content to pass through unchanged
+    - `MaskAction`: Modify the content by masking sensitive information
+    - `RejectAction`: Block the content and return an error response
+
+    The API is designed to work with various LLM providers by normalizing their different
+    request and response formats into a consistent schema.
 paths:
   /request:
     post:
       tags:
       - Webhooks
-      summary: Process Prompts
-      description: "This webhook will be called for every request before sending the\
-        \ prompts to the LLM. The 'role' and 'content' are extracted from the prompts\
-        \ into the PromptMessages json object regardless of the API format from various\
-        \ providers.\n\n\nThree types of responses are possible by returning one of\
-        \ the follow three json objects:\n\n\n    - PassAction  : Indicates that no\
-        \ action is taken for the prompts and it is allow to be send to the LLM\n\
-        \    - MaskAction  : Indicates that some information are masked in the prompt\
-        \ and it needs to be updated before sending to the LLM\n                 \
-        \   The PromptMessages json object of the request can be modified in place\
-        \ and send back in the body field of the\n                    response. The\
-        \ number of messages inside PromptMessages MUST be the same as the request\
-        \ in this webhook call. \n                    So, if the content needs to\
-        \ be deleted, an empty content field need to be set.\n    - RejectAction:\
-        \ Indicates that the request should be rejected with the specific status code\
-        \ and response message. The request\n                    will not be sent\
-        \ to the LLM."
+      summary: Process request prompts
+      description: |
+        This webhook intercepts requests from the user before they are sent to the LLM. You can use it to:
+        - Validate and filter content
+        - Mask sensitive information
+        - Reject requests based on policy rules
+
+        The webhook receives normalized prompt messages regardless of the original LLM provider's format.
+        It can return one of three actions:
+        1. `PassAction`: Allow the request to proceed unchanged
+        2. `MaskAction`: Return modified prompts with sensitive information masked
+        3. `RejectAction`: Block the request with a specified HTTP status code and message
       operationId: process_prompts_request_post
       requestBody:
         content:
@@ -48,23 +59,27 @@ paths:
     post:
       tags:
       - Webhooks
-      summary: Process Responses
-      description: "This webhook will be called for every response from the LLM before\
-        \ sending back to the user. The 'role' and 'content' are extracted from the\
-        \ response into the ResponseChoices json object regardless of the API format\
-        \ from various providers.\n\n\nFor streaming responses from the LLM, this\
-        \ webhook will be called multiple times for a single response. The AI gateway\
-        \ will buffer and detect the semantic boundary of the content before making\
-        \ the webhook call.\n\n\nTwo types of responses are possible by returning\
-        \ one of the follow two json objects:\n\n\n    - PassAction: Indicates that\
-        \ no action is taken for the response and it is allow to be send to the user.\n\
-        \    - MaskAction: Indicates that some information are masked in the response\
-        \ and it needs to be updated before sending\n                  to the user.\
-        \ The ResponseChoices json object from this webhook call can be modified in\
-        \ place and send\n                  back in the body field in the response.\n\
-        \                  The number of choices inside ResponseChoices MUST be the\
-        \ same as the request in this webhook call.\n                  So, if the\
-        \ content needs to be deleted, an empty content field need to be set."
+      summary: Process responses
+      description: |
+        This webhook intercepts responses from the LLM before they are returned to the user. The `role` and `content` 
+        are extracted from the response into the `ResponseChoices` JSON object, regardless of the API format from various 
+        providers.
+
+        For streaming responses from the LLM, this webhook is called multiple times for a single response. 
+        The AI gateway buffers and detects the semantic boundary of the content before making the webhook call.
+
+        Two types of responses are possible by returning one of the following JSON objects:
+
+        1. `PassAction`: 
+           - Indicates that no action is taken for the response
+           - The response is allowed to be sent to the user unchanged
+
+        2. `MaskAction`: 
+           - Indicates that some information is masked in the response
+           - The `ResponseChoices` JSON object can be modified in place
+           - The modified object should be sent back in the body field of the response
+           - The number of choices inside `ResponseChoices` MUST be the same as in the request
+           - If content needs to be deleted, set an empty content field
       operationId: process_responses_response_post
       requestBody:
         content:
@@ -91,8 +106,8 @@ components:
       properties:
         body:
           $ref: '#/components/schemas/PromptMessages'
-          description: body contains the object which is a list of the Message JSON
-            objects from the prompts in the request
+          description: The body object is a list of the Message JSON
+            objects from the prompts in the request.
       type: object
       required:
       - body
@@ -107,11 +122,22 @@ components:
           - $ref: '#/components/schemas/MaskAction'
           - $ref: '#/components/schemas/RejectAction'
           title: Action
-          description: "\n        action is the action to be taken based on the request.\n\
-            \        The following actions are available on the response:\n      \
-            \  - PassAction: No action is required.\n        - MaskAction: Mask the\
-            \ response body.\n        - RejectAction: Reject the request.\n      \
-            \  "
+          description: |
+            The action to be taken based on the request. The following actions are available:
+
+            1. `PassAction`: 
+               - No action is required
+               - The request proceeds unchanged to the LLM
+
+            2. `MaskAction`: 
+               - Some content in the request needs to be masked
+               - The modified request is returned in the body field
+               - The number of messages must match the original request
+
+            3. `RejectAction`: 
+               - The request should be rejected
+               - A specific HTTP status code and message are returned
+               - The request will not be sent to the LLM
       type: object
       required:
       - action
@@ -122,7 +148,7 @@ components:
       properties:
         body:
           $ref: '#/components/schemas/ResponseChoices-Input'
-          description: body contains the object with a list of Choice that contains
+          description: The body object is a list of the Choice JSON objects that have
             the response content from the LLM.
       type: object
       required:
@@ -137,10 +163,17 @@ components:
           - $ref: '#/components/schemas/PassAction'
           - $ref: '#/components/schemas/MaskAction'
           title: Action
-          description: "\n        action is the action to be taken based on the request.\n\
-            \        The following actions are available on the response:\n      \
-            \  - PassAction: No action is required.\n        - MaskAction: Mask the\
-            \ response body.\n        "
+          description: |
+            The action to be taken on the response. The following actions are available:
+
+            1. `PassAction`: 
+               - No action is required
+               - The response proceeds unchanged to the user
+
+            2. `MaskAction`: 
+               - Some content in the response needs to be masked
+               - The modified response is returned in the body field
+               - The number of choices must match the original response
       type: object
       required:
       - action
@@ -163,48 +196,59 @@ components:
           - $ref: '#/components/schemas/PromptMessages'
           - $ref: '#/components/schemas/ResponseChoices-Output'
           title: Body
-          description: body contains the modified messages that masked out some of
-            the original contents. When used in a GuardrailPromptResponse, this should
-            be PromptMessages. When used in GuardrailResponseResponse, this should
-            be ResponseChoices
+          description: The body has the modified messages that masked out some of
+            the original content. When used in a `GuardrailPromptResponse`, this should
+            be `PromptMessages`. When used in `GuardrailResponseResponse`, this should
+            be `ResponseChoices`.
         reason:
           anyOf:
           - type: string
           - type: 'null'
           title: Reason
-          description: reason is a human readable string that explains the reason
+          description: The reason is a human readable string that explains the reason
             for the action.
       type: object
       required:
       - body
       title: MaskAction
-      description: 'MaskAction is the response model for the Mask action which indicates
+      description: The response model for the Mask action, which indicates
         the message has been modified.
 
-        This can be used in GuardrailsPromptResponse or GuardrailsResponseResponse
-        when responding to a GuardrailsPromptRequest or a GuardrailsResponseRequest
-        respectively'
+        This can be used in `GuardrailsPromptResponse` or `GuardrailsResponseResponse`
+        when responding to a `GuardrailsPromptRequest` or a `GuardrailsResponseRequest`
+        respectively.
     Message:
       properties:
         role:
           type: string
           title: Role
-          description: The role associated to the content in this message.
-          examples:
-          - Assistant
+          description: |
+            The role of the message sender in the conversation.
+            Common values include:
+            - "system": System instructions or context
+            - "user": Messages from the end user
+            - "assistant": Responses from the AI assistant
         content:
           type: string
           title: Content
-          description: The content text for this message.
-          examples:
-          - How can I help you today?
+          description: |
+            The actual text content of the message.
+            Depending on the role, the content can be a question, instruction, or response.
       type: object
       required:
       - role
       - content
       title: Message
-      description: Message contains the text prompts for a request to the LLM or the
-        response content from the LLM.
+      description: |
+        A single message in a conversation with an LLM.
+        Each message has a role (who sent it) and content (what was sent).
+      examples:
+        - role: system
+          content: You are a helpful AI assistant.
+        - role: user
+          content: What is the capital of France?
+        - role: assistant
+          content: The capital of France is Paris.
     PassAction:
       properties:
         reason:
@@ -212,11 +256,11 @@ components:
           - type: string
           - type: 'null'
           title: Reason
-          description: reason is a human readable string that explains the reason
+          description: The reason is a human readable string that explains the reason
             for the action.
       type: object
       title: PassAction
-      description: PassAction is the response model for the Pass action which indicate
+      description: The response model for the Pass action, which indicates
         no modification is done to the messages.
     PromptMessages:
       properties:
@@ -225,59 +269,69 @@ components:
             $ref: '#/components/schemas/Message'
           type: array
           title: Messages
-          description: List of prompt messages including role and content.
-          examples:
-          - - content: How can I help you?
-              role: Assistant
-            - content: What is 1 + 2?
-              role: User
+          description: |
+            A sequence of messages that form a conversation or prompt.
+            The order of messages matters, because it represents the conversation history.
       type: object
       title: PromptMessages
-      description: PromptMessages contains a list of prompt messages in a request
-        to the LLM
+      description: |
+        A complete conversation or prompt to be sent to an LLM.
+        The `messages` array represents the conversation history in chronological order.
+      examples:
+        - messages:
+            - role: system
+              content: You are a helpful AI assistant that provides concise answers.
+            - role: user
+              content: What is 2+2?
+            - role: assistant
+              content: 2+2 is 4.
+            - role: user
+              content: What about 3+3?
     RejectAction:
       properties:
         body:
           type: string
           title: Body
-          description: body is the rejection message that will be used for HTTP error
+          description: The rejection message that to be used for the HTTP error
             response body.
         status_code:
           type: integer
           title: Status Code
-          description: status_code is the HTTP status code to be returned in the HTTP
+          description: The HTTP status code to be returned in the HTTP
             error response.
         reason:
           anyOf:
           - type: string
           - type: 'null'
           title: Reason
-          description: reason is a human readable string that explains the reason
+          description: The reason is a human readable string that explains the reason
             for the action.
       type: object
       required:
       - body
       - status_code
       title: RejectAction
-      description: 'RejectAction is the response model for the Reject action which
-        indicate the request should be rejected.
-
-        This action will cause a HTTP error response to be sent back to the end-user.'
+      description: The response model for the Reject action, which indicates
+        the request should be rejected. This action causes a HTTP error
+        response to be sent back to the end user.
     ResponseChoice:
       properties:
         message:
           $ref: '#/components/schemas/Message'
-          description: message contains the role and text content of the response
-            from the LLM model.
-          examples:
-          - content: 1 + 2 is 3
-            role: Assistant
+          description: |
+            The AI assistant's response to the user's prompt.
+            The `role` is typically "assistant" and the `content` has the response text.
       type: object
       required:
       - message
       title: ResponseChoice
-      description: ResponseChoice is a single choice of the chat completion response
-        text from the LLM
+      description: |
+        Represents a single possible response from the LLM.
+        Some LLMs might provide multiple alternative responses.
+      examples:
+        - message:
+            role: assistant
+            content: The sum of 2 and 2 is 4.
     ResponseChoices-Input:
       properties:
         choices:
@@ -285,18 +339,22 @@ components:
             $ref: '#/components/schemas/ResponseChoice'
           type: array
           title: Choices
-          description: list of possible independent responses from the LLM
-          examples:
-          - - message:
-                content: 1 + 2 is 3
-                role: Assistant
-            - message:
-                content: The result of adding 1 to 2 is 3
-                role: Assistant
+          description: |
+            A list of possible responses from the LLM.
+            Some models might provide multiple alternative responses.
       type: object
       title: ResponseChoices
-      description: ResponseChoices contains a list of response choices from the LLM.
-        Each choice represent a separate independent response.
+      description: |
+        Contains all possible responses from the LLM for a given prompt.
+        The `choices` array might contain one or more alternative responses.
+      examples:
+        - choices:
+            - message:
+                role: assistant
+                content: The sum of 2 and 2 is 4.
+            - message:
+                role: assistant
+                content: When you add 2 to 2, you get 4.
     ResponseChoices-Output:
       properties:
         choices:
@@ -304,7 +362,7 @@ components:
             $ref: '#/components/schemas/ResponseChoice'
           type: array
           title: Choices
-          description: list of possible independent responses from the LLM
+          description: A list of possible independent responses from the LLM.
           examples:
           - - message:
                 content: 1 + 2 is 3
@@ -314,8 +372,8 @@ components:
                 role: Assistant
       type: object
       title: ResponseChoices
-      description: ResponseChoices contains a list of response choices from the LLM.
-        Each choice represent a separate independent response.
+      description: A list of response choices from the LLM.
+        Each choice represents a separate, independent response.
     ValidationError:
       properties:
         loc:
