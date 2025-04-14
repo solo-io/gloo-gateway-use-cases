@@ -14,7 +14,7 @@ On the upstream request path, block, mask or pass actions are allowed. Base on t
 
 On the downstream response path, only mask or pass action is allow and similarly, Gloo AI Gateway will translate the message to the correct format for sending to the end user.
 
-## Starting the server
+## Starting the server locally
 
 ```bash
 uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
@@ -30,13 +30,22 @@ http://localhost:8000/docs
 
 ## Sample Resources
 
-See the resources/ directory for simple setup for turning on the GuardRail Webhook Feature.
-The prompt-guard-webhook.yaml file is where the webhook server ip is setup.
+See the `resources/` directory for simple setup for turning on the GuardRail Webhook Feature.
+
+The `prompt-guard-webhook.yaml` file is where the webhook server ip is setup.
+
+The `Dockerfile` is a simple example of how to build a Docker image for the webhook server. It uses the uv image to build the dependencies and then uses the python:3.11-slim image to run the application. 
+
+Sample Docker image:
+
+```
+gcr.io/solo-public/docs/ai-guardrail-webhook:latest
+```
 
 ## Open API Spec
 
-The gloo-ai-gateway-guardrail-webhook-openapi.yaml file under the docs/ directory is the generated Open API spec file. The json version can also be retrieved from `http://localhost:8000/openapi.json` while this sample server is running.
+The `gloo-ai-gateway-guardrail-webhook-openapi.yaml` file under the `docs/` directory is the generated Open API spec file. The json version can also be retrieved from `http://localhost:8000/openapi.json` while this sample server is running.
 
 ## Open Tracing
 
-Gloo AI Gateway supports Open Tracing and will propagate the tracing header to the webhook server if the tracing feature is enabled. You can set the OTEL_EXPORTER_OTLP_TRACES_ENDPOINT env variable to point to your tracing server and the server will export the trace.
+Gloo AI Gateway supports Open Tracing and will propagate the tracing header to the webhook server if the tracing feature is enabled. You can set the `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` env variable to point to your tracing server and the server will export the trace.
