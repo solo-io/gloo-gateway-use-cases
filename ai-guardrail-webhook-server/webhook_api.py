@@ -10,32 +10,36 @@ from pydantic.json_schema import models_json_schema
 # the Guardrails API.
 class Message(BaseModel):
     """
-    Message contains the text prompts for a request to the LLM or the response content from the LLM.
+    A single message in a conversation with an LLM.
+    Each message has a role (who sent it) and content (what was sent).
     """
 
     role: str = Field(
-        description="The role associated to the content in this message.",
-        examples=["Assistant"],
+        description="The role of the message sender in the conversation. Common values include:\n- 'system': System instructions or context\n- 'user': Messages from the end user\n- 'assistant': Responses from the AI assistant",
+        examples=["system", "user", "assistant"],
     )
 
     content: str = Field(
-        description="The content text for this message.",
-        examples=["How can I help you today?"],
+        description="The actual text content of the message. Depending on the role, the content can be a question, instruction, or response.",
+        examples=["You are a helpful AI assistant.", "What is the capital of France?", "The capital of France is Paris."],
     )
 
 
 class PromptMessages(BaseModel):
     """
-    PromptMessages contains a list of prompt messages in a request to the LLM
+    A complete conversation or prompt to be sent to an LLM.
+    The `messages` array represents the conversation history in chronological order.
     """
 
     messages: List[Message] = Field(
         default_factory=list,
-        description="List of prompt messages including role and content.",
+        description="A sequence of messages that form a conversation or prompt. The order of messages matters, because it represents the conversation history.",
         examples=[
             [
-                {"role": "Assistant", "content": "How can I help you?"},
-                {"role": "User", "content": "What is 1 + 2?"},
+                {"role": "system", "content": "You are a helpful AI assistant that provides concise answers."},
+                {"role": "user", "content": "What is 2+2?"},
+                {"role": "assistant", "content": "2+2 is 4."},
+                {"role": "user", "content": "What about 3+3?"},
             ]
         ],
     )
@@ -43,32 +47,29 @@ class PromptMessages(BaseModel):
 
 class ResponseChoice(BaseModel):
     """
-    ResponseChoice is a single choice of the chat completion response text from the LLM
+    Represents a single possible response from the LLM.
+    Some LLMs might provide multiple alternative responses.
     """
 
     message: Message = Field(
-        description="message contains the role and text content of the response from the LLM model.",
-        examples=[{"role": "Assistant", "content": "1 + 2 is 3"}],
+        description="The AI assistant's response to the user's prompt. The `role` is typically 'assistant' and the `content` has the response text.",
+        examples=[{"role": "assistant", "content": "The sum of 2 and 2 is 4."}],
     )
 
 
 class ResponseChoices(BaseModel):
     """
-    ResponseChoices contains a list of response choices from the LLM. Each choice represent a separate independent response.
+    Contains all possible responses from the LLM for a given prompt.
+    The `choices` array might contain one or more alternative responses.
     """
 
     choices: List[ResponseChoice] = Field(
         default_factory=list,
-        description="list of possible independent responses from the LLM",
+        description="A list of possible responses from the LLM. Some models might provide multiple alternative responses.",
         examples=[
             [
-                {"message": {"role": "Assistant", "content": "1 + 2 is 3"}},
-                {
-                    "message": {
-                        "role": "Assistant",
-                        "content": "The result of adding 1 to 2 is 3",
-                    }
-                },
+                {"message": {"role": "assistant", "content": "The sum of 2 and 2 is 4."}},
+                {"message": {"role": "assistant", "content": "When you add 2 to 2, you get 4."}},
             ]
         ],
     )
@@ -83,53 +84,53 @@ class GuardrailsPromptRequest(BaseModel):
     """
 
     body: PromptMessages = Field(
-        description="body contains the object which is a list of the Message JSON objects from the prompts in the request"
+        description="The body object is a list of the Message JSON objects from the prompts in the request."
     )
 
 
 class MaskAction(BaseModel):
     """
-    MaskAction is the response model for the Mask action which indicates the message has been modified.
-    This can be used in GuardrailsPromptResponse or GuardrailsResponseResponse when responding to a GuardrailsPromptRequest or a GuardrailsResponseRequest respectively
+    The response model for the Mask action, which indicates the message has been modified.
+    This can be used in GuardrailsPromptResponse or GuardrailsResponseResponse when responding to a GuardrailsPromptRequest or a GuardrailsResponseRequest respectively.
     """
 
     body: PromptMessages | ResponseChoices = Field(
-        description="body contains the modified messages that masked out some of the original contents. When used in a GuardrailPromptResponse, this should be PromptMessages. When used in GuardrailResponseResponse, this should be ResponseChoices"
+        description="The body has the modified messages that masked out some of the original content. When used in a GuardrailPromptResponse, this should be PromptMessages. When used in GuardrailResponseResponse, this should be ResponseChoices."
     )
 
     reason: str | None = Field(
-        description="reason is a human readable string that explains the reason for the action.",
+        description="The reason is a human readable string that explains the reason for the action.",
         default=None,
     )
 
 
 class RejectAction(BaseModel):
     """
-    RejectAction is the response model for the Reject action which indicate the request should be rejected.
-    This action will cause a HTTP error response to be sent back to the end-user.
+    The response model for the Reject action, which indicates the request should be rejected.
+    This action causes a HTTP error response to be sent back to the end user.
     """
 
     body: str = Field(
-        description="body is the rejection message that will be used for HTTP error response body."
+        description="The rejection message that to be used for the HTTP error response body."
     )
 
     status_code: int = Field(
-        description="status_code is the HTTP status code to be returned in the HTTP error response."
+        description="The HTTP status code to be returned in the HTTP error response."
     )
 
     reason: str | None = Field(
-        description="reason is a human readable string that explains the reason for the action.",
+        description="The reason is a human readable string that explains the reason for the action.",
         default=None,
     )
 
 
 class PassAction(BaseModel):
     """
-    PassAction is the response model for the Pass action which indicate no modification is done to the messages.
+    The response model for the Pass action, which indicates no modification is done to the messages.
     """
 
     reason: str | None = Field(
-        description="reason is a human readable string that explains the reason for the action.",
+        description="The reason is a human readable string that explains the reason for the action.",
         default=None,
     )
 
@@ -141,11 +142,21 @@ class GuardrailsPromptResponse(BaseModel):
 
     action: PassAction | MaskAction | RejectAction = Field(
         description="""
-        action is the action to be taken based on the request.
-        The following actions are available on the response:
-        - PassAction: No action is required.
-        - MaskAction: Mask the response body.
-        - RejectAction: Reject the request.
+        The action to be taken based on the request. The following actions are available:
+
+        1. PassAction: 
+           - No action is required
+           - The request proceeds unchanged to the LLM
+
+        2. MaskAction: 
+           - Some content in the request needs to be masked
+           - The modified request is returned in the body field
+           - The number of messages must match the original request
+
+        3. RejectAction: 
+           - The request should be rejected
+           - A specific HTTP status code and message are returned
+           - The request will not be sent to the LLM
         """
     )
 
@@ -156,7 +167,7 @@ class GuardrailsResponseRequest(BaseModel):
     """
 
     body: ResponseChoices = Field(
-        description="body contains the object with a list of Choice that contains the response content from the LLM."
+        description="The body object is a list of the Choice JSON objects that have the response content from the LLM."
     )
 
 
@@ -167,10 +178,16 @@ class GuardrailsResponseResponse(BaseModel):
 
     action: PassAction | MaskAction = Field(
         description="""
-        action is the action to be taken based on the request.
-        The following actions are available on the response:
-        - PassAction: No action is required.
-        - MaskAction: Mask the response body.
+        The action to be taken on the response. The following actions are available:
+
+        1. PassAction: 
+           - No action is required
+           - The response proceeds unchanged to the user
+
+        2. MaskAction: 
+           - Some content in the response needs to be masked
+           - The modified response is returned in the body field
+           - The number of choices must match the original response
         """
     )
 
