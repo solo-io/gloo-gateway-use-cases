@@ -34,9 +34,7 @@ See the `resources/` directory for simple setup for turning on the GuardRail Web
 
 The `prompt-guard-webhook.yaml` file is where the webhook server ip is setup.
 
-The `Dockerfile` is a simple example of how to build a Docker image for the webhook server. It uses the uv image to build the dependencies and then uses the python:3.11-slim image to run the application. 
-
-Sample Docker image:
+The `Dockerfile` is used to build a sample Docker image for the webhook server:
 
 ```
 gcr.io/solo-public/docs/ai-guardrail-webhook:latest
