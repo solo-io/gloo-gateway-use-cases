@@ -1,6 +1,3 @@
-# From uv docs
-# https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
-
 # First stage: build dependencies
 FROM --platform=linux/amd64 python:3.11-slim AS builder
 

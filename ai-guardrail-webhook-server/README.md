@@ -1,28 +1,70 @@
 # Sample Python Webhook Server to receive Gloo AI Gateway Guardrail webhook calls
 
-## Prerequisite
+This server demonstrates how to implement a webhook for the Gloo AI Gateway Guardrail feature. The Guardrail feature allows you to intercept and process both requests to and responses from Large Language Models (LLMs).
 
-This application uses `uv` for dependency and python env management. Please follow the uv [installation instruction](https://docs.astral.sh/uv/getting-started/installation/) for your platform.
+### Features
 
-## Description
+**Request Processing**: Intercepts user prompts before they reach the LLM to:
+  - Support three actions: Pass, Mask, or Reject
+  - Validate, filter, or mask sensitive content
+  - Normalize prompts across different LLM providers
 
-This server is very basic for just demonstrating the webhook API and what action you can take after examining the content.
+**Response Processing**: Intercepts LLM responses before they reach the user to:
+  - Support two actions: Pass or Mask
+  - Filter or mask sensitive content in responses
+  - Handle both single and streaming responses
 
-If the content contains the word "block", it will return 403. If the content contains the word "mask", it will change it to "****" and return the entire body in a 200 response.
+### Example Behavior
 
-On the upstream request path, block, mask or pass actions are allowed. Base on these responses from the webhook server, Gloo AI Gateway will either block the request from going to upstream LLM server or use the masked content in the body of the response for sending upstream. The format of the message in these webhook api is loosely based on the OpenAI Chat Completion API format and is independent of what model/API upstream uses. Gloo AI Gateway will translate the masked message back to the proper format for the upstream model/API.  
+The webhook server is preconfigured to support the following actions:
 
-On the downstream response path, only mask or pass action is allow and similarly, Gloo AI Gateway will translate the message to the correct format for sending to the end user.
+- If content contains "block", returns HTTP 403
+- If content contains "mask", replaces "mask" with "****"
+- Otherwise, allows the content to pass through unchanged
+
+The webhook API format is based on the OpenAI Chat Completion API format, but works independently of the upstream model and API. Gloo AI Gateway handles the translation between different formats.
+
+## Prerequisites
+
+- Python 3.11 or later
+- pip (Python package installer)
 
 ## Starting the server locally
 
+First, create and activate a virtual environment:
+
 ```bash
-uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# Create a virtual environment
+python -m venv venv
+
+# Activate the virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+# .\venv\Scripts\activate
+```
+
+Then install the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Finally, start the server:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+When you're done, you can deactivate the virtual environment:
+
+```bash
+deactivate
 ```
 
 ## Swagger Interactive API page
 
-Open the following URL in your browser to read the API documentation and test with sample request
+Open the following URL in your browser to read the API documentation and test with sample request:
 
 ```bash
 http://localhost:8000/docs
