@@ -19,7 +19,26 @@ from opentelemetry import trace
 import uvicorn
 import webhook_api as api
 
-app = FastAPI(title="Gloo AI Gateway GuardRail Webhook API", version="0.1.0")
+app = FastAPI(
+    title="Gloo AI Gateway GuardRail Webhook API",
+    version="0.1.0",
+    description="""
+This API specification defines the webhook endpoints for the Gloo AI Gateway Guardrail feature. The Guardrail feature provides a way to intercept and process both requests to and responses from Large Language Models (LLMs). This way, you can implement your own advanced guardrails and content filtering.
+
+The Guardrail feature consists of two main webhook endpoints:
+
+1. `/request` - Processes request prompts before they are sent to the LLM
+2. `/response` - Processes responses from the LLM before they are sent back to the user
+
+Each endpoint supports different actions:
+
+* `PassAction`: Allow the content to pass through unchanged
+* `MaskAction`: Modify the content by masking sensitive information
+* `RejectAction`: Block the content and return an error response
+
+The API is designed to work with various LLM providers by normalizing their different request and response formats into a consistent schema.
+    """,
+)
 FastAPIInstrumentor().instrument_app(app)
 
 def tracer() -> trace.Tracer | trace.NoOpTracer:
@@ -58,17 +77,15 @@ async def add_tracing(request: Request, call_next):
     "/request",
     response_model=api.GuardrailsPromptResponse,
     tags=["Webhooks"],
-    description="This webhook will be called for every request before sending the prompts to the LLM. "
-    + "The 'role' and 'content' are extracted from the prompts into the PromptMessages json object "
-    + "regardless of the API format from various providers.\n\n\n"
-    + "Three types of responses are possible by returning one of the follow three json objects:\n\n\n"
-    + "    - PassAction  : Indicates that no action is taken for the prompts and it is allow to be send to the LLM\n"
-    + "    - MaskAction  : Indicates that some information are masked in the prompt and it needs to be updated before sending to the LLM\n"
-    + "                    The PromptMessages json object of the request can be modified in place and send back in the body field of the\n"
-    + "                    response. The number of messages inside PromptMessages MUST be the same as the request in this webhook call. \n"
-    + "                    So, if the content needs to be deleted, an empty content field need to be set.\n"
-    + "    - RejectAction: Indicates that the request should be rejected with the specific status code and response message. The request\n"
-    + "                    will not be sent to the LLM.",
+    description="This webhook intercepts requests from the user before they are sent to the LLM. You can use it to:\n"
+    "- Validate and filter content\n"
+    "- Mask sensitive information\n"
+    "- Reject requests based on policy rules\n\n"
+    "The webhook receives normalized prompt messages regardless of the original LLM provider's format.\n"
+    "It can return one of three actions:\n"
+    "1. `PassAction`: Allow the request to proceed unchanged\n"
+    "2. `MaskAction`: Return modified prompts with sensitive information masked\n"
+    "3. `RejectAction`: Block the request with a specified HTTP status code and message"
 )
 async def process_prompts(
     req: api.GuardrailsPromptRequest,
@@ -113,18 +130,21 @@ async def process_prompts(
     "/response",
     response_model=api.GuardrailsResponseResponse,
     tags=["Webhooks"],
-    description="This webhook will be called for every response from the LLM before sending back to the user. "
-    + "The 'role' and 'content' are extracted from the response into the ResponseChoices json object "
-    + "regardless of the API format from various providers.\n\n\n"
-    + "For streaming responses from the LLM, this webhook will be called multiple times for a single response. "
-    + "The AI gateway will buffer and detect the semantic boundary of the content before making the webhook call.\n\n\n"
-    + "Two types of responses are possible by returning one of the follow two json objects:\n\n\n"
-    + "    - PassAction: Indicates that no action is taken for the response and it is allow to be send to the user.\n"
-    + "    - MaskAction: Indicates that some information are masked in the response and it needs to be updated before sending\n"
-    + "                  to the user. The ResponseChoices json object from this webhook call can be modified in place and send\n"
-    + "                  back in the body field in the response.\n"
-    + "                  The number of choices inside ResponseChoices MUST be the same as the request in this webhook call.\n"
-    + "                  So, if the content needs to be deleted, an empty content field need to be set.\n",
+    description="This webhook intercepts responses from the LLM before they are returned to the user. The `role` and `content` "
+    "are extracted from the response into the `ResponseChoices` JSON object, regardless of the API format from various "
+    "providers.\n\n"
+    "For streaming responses from the LLM, this webhook is called multiple times for a single response. "
+    "The AI gateway buffers and detects the semantic boundary of the content before making the webhook call.\n\n"
+    "Two types of responses are possible by returning one of the following JSON objects:\n\n"
+    "1. `PassAction`: \n"
+    "   - Indicates that no action is taken for the response\n"
+    "   - The response is allowed to be sent to the user unchanged\n\n"
+    "2. `MaskAction`: \n"
+    "   - Indicates that some information is masked in the response\n"
+    "   - The `ResponseChoices` JSON object can be modified in place\n"
+    "   - The modified object should be sent back in the body field of the response\n"
+    "   - The number of choices inside `ResponseChoices` MUST be the same as in the request\n"
+    "   - If content needs to be deleted, set an empty content field"
 )
 async def process_responses(
     request: Request,
