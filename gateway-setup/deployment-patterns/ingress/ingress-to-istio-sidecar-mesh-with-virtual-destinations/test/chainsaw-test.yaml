@@ -1,0 +1,118 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gloo-control-plane
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gloo-proxy-test
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo-proxy-http
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: netshoot-test
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: netshoot
+            namespace: default
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: check-gloo-proxy-pods
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl get pods -l gloo=kube-gateway -n gloo-system -ojsonpath='{.items[0].spec.containers[*].name}' | wc -w | awk '{$1=$1};1'
+        outputs:
+        - name: glooProxyContainerCount
+          value: ($stdout)
+    - assert:
+        resource:
+          ($glooProxyContainerCount): "3\n"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-istiodiscoveryaddress
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl get gatewayparameters gloo-gateway -n gloo-system -ojsonpath='{.spec.kube.istio.istioProxyContainer.istioDiscoveryAddress}'
+        outputs:
+        - name: discoveryaddress
+          value: ($stdout)
+    - assert:
+        resource:
+          ($discoveryaddress): "istiod-main.istio-system.svc:15012"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-ingress-to-reviews
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/reviews/0
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-productpage-ingress
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/productpage
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
