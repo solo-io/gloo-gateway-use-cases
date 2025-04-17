@@ -6,7 +6,7 @@ if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.8
+GLOO_VERSION=1.18.10
 
 # Install Argo CD
 echo "Installing Argo CD"

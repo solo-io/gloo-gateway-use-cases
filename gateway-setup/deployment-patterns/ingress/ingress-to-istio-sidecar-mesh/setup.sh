@@ -12,7 +12,7 @@ if [[ -z "${CLUSTER_NAME}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.8
+GLOO_VERSION=1.18.10
 
 SCRIPT_DIR=$(dirname "$0")
 
