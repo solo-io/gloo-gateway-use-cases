@@ -1,0 +1,73 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: no-keys-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin2:8000/get
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "401"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: api-keys-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin2:8000/get -H "api-key: mykey"
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: api-keys-parse-output-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -s http://httpbin2:8000/get -H "api-key: mykey"
+        outputs:
+        - name: returnbody
+          value: (json_parse($stdout))
+    - assert:
+        resource:
+          ($returnbody): 
+            headers:
+              Api-Key: 
+              - mykey
+              X-Organization:
+              - "solo.io"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: no-keys-httpbin3-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin3:8000/get
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"

@@ -1,0 +1,74 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ratelimit-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin2:8000/get
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin2:8000/get
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "429"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: xorg-ratelimit-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin3:8000/get
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+  - try: 
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin3:8000/get
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin3:8000/get -H "X-Organization: myorg"
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin3:8000/get -H "X-Organization: myorg"
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "429"

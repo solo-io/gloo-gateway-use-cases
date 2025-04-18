@@ -1,0 +1,68 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gloo-control-plane
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gloo-proxy-waypoint-test
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo-proxy-gloo-waypoint
+            namespace: httpbin
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: smoke-test-routing
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin2:8000/get
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: smoke-test-routing2
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -i -w '%{http_code}' -o /dev/null -s http://httpbin3:8000/get
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+

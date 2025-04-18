@@ -1,0 +1,46 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: header-control-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -s http://httpbin2:8000/get -H "X-Remove: this header"
+        outputs:
+        - name: returnbody
+          value: (json_parse($stdout))
+    - assert:
+        resource:
+          ($returnbody): 
+            headers:
+              App: 
+              - httpbin2
+              User-Agent:
+              - custom
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: header-control-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/client -n httpbin -- curl -s http://httpbin3:8000/get -H "X-Remove: this header"
+        outputs:
+        - name: returnbody
+          value: (json_parse($stdout))
+    - assert:
+        resource:
+          ($returnbody): 
+            headers:
+              App: 
+              - httpbin3
+              User-Agent:
+              - "curl/8.7.1"
+              X-Remove:
+              - "this header"
