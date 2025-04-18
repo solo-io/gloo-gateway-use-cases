@@ -6,3 +6,4 @@ images.txt
 *key
 iam-policy.json
 istio-1.*
+ai-guardrail-webhook-server/docs/export_openapi.py
