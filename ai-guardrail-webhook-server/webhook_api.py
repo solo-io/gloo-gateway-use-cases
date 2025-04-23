@@ -200,7 +200,7 @@ def print_json_schema(models):
     openapi_schema = {
         "openapi": "3.1.0",
         "info": {
-            "title": "Gloo AI Gateway Guardrails Webhook API",
+            "title": "AI Gateway Guardrails Webhook API",
             "version": "0.0.1",
         },
         "components": {

@@ -20,10 +20,10 @@ import uvicorn
 import webhook_api as api
 
 app = FastAPI(
-    title="Gloo AI Gateway GuardRail Webhook API",
+    title="AI Gateway GuardRail Webhook API",
     version="0.1.0",
     description="""
-This API specification defines the webhook endpoints for the Gloo AI Gateway Guardrail feature. The Guardrail feature provides a way to intercept and process both requests to and responses from Large Language Models (LLMs). This way, you can implement your own advanced guardrails and content filtering.
+This API specification defines the webhook endpoints for the AI Gateway Guardrail feature. The Guardrail feature provides a way to intercept and process both requests to and responses from Large Language Models (LLMs). This way, you can implement your own advanced guardrails and content filtering.
 
 The Guardrail feature consists of two main webhook endpoints:
 
