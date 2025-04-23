@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Gloo AI Gateway GuardRail Webhook API
+  title: AI Gateway GuardRail Webhook API
   description: "\nThis API specification defines the webhook endpoints for the Gloo\
     \ AI Gateway Guardrail feature. The Guardrail feature provides a way to intercept\
     \ and process both requests to and responses from Large Language Models (LLMs).\
