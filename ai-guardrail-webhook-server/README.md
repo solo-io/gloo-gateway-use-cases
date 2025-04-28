@@ -1,6 +1,6 @@
-# Sample Python Webhook Server to receive Gloo AI Gateway Guardrail webhook calls
+# Sample Python Webhook Server to receive AI Gateway Guardrail webhook calls
 
-This server demonstrates how to implement a webhook for the Gloo AI Gateway Guardrail feature. The Guardrail feature allows you to intercept and process both requests to and responses from Large Language Models (LLMs).
+This server demonstrates how to implement a webhook for the AI Gateway Guardrail feature. The Guardrail feature allows you to intercept and process both requests to and responses from Large Language Models (LLMs).
 
 ### Features
 
@@ -22,7 +22,7 @@ The webhook server is preconfigured to support the following actions:
 - If content contains "mask", replaces "mask" with "****"
 - Otherwise, allows the content to pass through unchanged
 
-The webhook API format is based on the OpenAI Chat Completion API format, but works independently of the upstream model and API. Gloo AI Gateway handles the translation between different formats.
+The webhook API format is based on the OpenAI Chat Completion API format, but works independently of the upstream model and API. AI Gateway handles the translation between different formats.
 
 ## Prerequisites
 
@@ -88,4 +88,4 @@ The `gloo-ai-gateway-guardrail-webhook-openapi.yaml` file under the `docs/` dire
 
 ## Open Tracing
 
-Gloo AI Gateway supports Open Tracing and will propagate the tracing header to the webhook server if the tracing feature is enabled. You can set the `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` env variable to point to your tracing server and the server will export the trace.
+AI Gateway supports Open Tracing and will propagate the tracing header to the webhook server if the tracing feature is enabled. You can set the `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` env variable to point to your tracing server and the server will export the trace.
