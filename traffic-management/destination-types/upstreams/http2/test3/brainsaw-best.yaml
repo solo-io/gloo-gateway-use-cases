@@ -1,0 +1,63 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: smoke-test-enable-service-annotations
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion): 1.19.0
+  - try:
+    - script:
+        env:
+        - name: GLOO_LICENSE
+          value: ($values.glooLicense)
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        content: |
+          helm upgrade -i -n gloo-system gloo glooe/gloo-ee \
+          --set-string license_key=$GLOO_LICENSE \
+          --version $GLOO_VERSION \
+          -f -<< EOF
+          gloo:
+            discovery:
+              enabled: true
+            gatewayProxies:
+              gatewayProxy:
+                disabled: true
+            gloo:
+              disableLeaderElection: true
+            kubeGateway:
+              enabled: true
+          gloo-fed:
+            enabled: false
+            glooFedApiserver:
+              enable: false
+          grafana:
+            defaultInstallationEnabled: false
+          observability:
+            enabled: false
+          prometheus:
+            enabled: false
+          EOF
+  - try:
+    # first operation: annotate the service
+    - script:
+        content: |
+          kubectl annotate service httpbin gloo.solo.io/h2_service=true -n httpbin
+  - try:
+    # first operation: annotate the service
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl --http2 -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/headers -H "host: www.example.com"
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+  - try:
+    - script:
+        content: |
+          kubectl annotate service httpbin gloo.solo.io/h2_service=false -n httpbin --overwrite

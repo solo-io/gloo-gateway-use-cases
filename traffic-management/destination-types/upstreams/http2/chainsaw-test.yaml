@@ -1,0 +1,212 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: get-started-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          ./download-script.sh
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion): 1.19.0
+  - try:
+    - assert:
+        resource:
+          ($values.glooLicense != null): true
+  - try:
+    - script:
+        content: |
+          kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+  - try:
+    - script:
+        env:
+        - name: GLOO_LICENSE
+          value: ($values.glooLicense)
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        content: |
+          helm repo add glooe https://storage.googleapis.com/gloo-ee-helm
+          helm repo update
+          helm install -n gloo-system gloo glooe/gloo-ee \
+          --create-namespace \
+          --version $GLOO_VERSION \
+          --set-string license_key=$GLOO_LICENSE \
+          -f -<< EOF
+          gloo:
+            discovery:
+              enabled: false
+            gatewayProxies:
+              gatewayProxy:
+                disabled: true
+            kubeGateway:
+              enabled: true
+            gloo:
+              disableLeaderElection: true
+          gloo-fed:
+            enabled: false
+            glooFedApiserver:
+              enable: false
+          grafana:
+            defaultInstallationEnabled: false
+          observability:
+            enabled: false
+          prometheus:
+            enabled: false
+          EOF
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: setup-gateway-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl apply -n gloo-system -f- <<EOF
+          kind: Gateway 
+          apiVersion: gateway.networking.k8s.io/v1
+          metadata:
+            name: http 
+          spec:
+            gatewayClassName: gloo-gateway
+            listeners:
+            - protocol: HTTP 
+              port: 8080
+              name: http 
+              allowedRoutes:
+                namespaces:
+                  from: All 
+          EOF
+    - assert:
+        resource:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
+          metadata:
+            name: http
+            namespace: gloo-system
+          spec:
+            gatewayClassName: gloo-gateway
+            listeners:
+            - protocol: HTTP
+              port: 8080
+              name: http
+              allowedRoutes:
+                namespaces:
+                  from: All
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test  
+metadata:
+  name: deploy-httpbin-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: | 
+          kubectl create namespace httpbin
+          kubectl apply -n httpbin -f https://raw.githubusercontent.com/solo-io/gloo-mesh-use-cases/main/policy-demo/httpbin.yaml
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: httpbin
+            namespace: httpbin
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: expose-httpbin-test
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl apply -f- <<EOF
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: HTTPRoute
+          metadata:
+            name: httpbin
+            namespace: httpbin
+            labels:
+              example: httpbin-route 
+          spec:
+            parentRefs:
+              - name: http 
+                namespace: gloo-system
+            hostnames:
+              - "www.example.com"
+            rules:
+              - backendRefs:
+                  - name: httpbin
+                    port: 8000
+          EOF
+    - assert:
+        resource:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: HTTPRoute
+          metadata:
+            name: httpbin
+            namespace: httpbin
+          spec:
+            parentRefs:
+              - name: http
+                namespace: gloo-system
+            hostnames:
+              - "www.example.com"
+            rules:
+              - backendRefs:
+                  - name: httpbin
+                    port: 8000
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: deploy-netshoot
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl create namespace netshoot
+          kubectl apply -n netshoot -f https://raw.githubusercontent.com/solo-io/gloo-mesh-use-cases/main/policy-demo/netshoot.yaml
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: netshoot
+            namespace: netshoot
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-httpbin-access
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec -n netshoot netshoot -- curl -s -o /dev/null -w "%{http_code}" http://www.example.com
+    - assert:
+        resource:
+          ($values.httpStatusCode): 200
+
+    

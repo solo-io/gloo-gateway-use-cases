@@ -6,7 +6,7 @@ if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.10
+GLOO_VERSION=1.19.0
 
 # The script meat.
 echo "Installing the latest Gloo CLI..."
@@ -15,7 +15,7 @@ export PATH=$HOME/.gloo/bin:$PATH
 
 # Installing Gloo Gateway Enterprise Edition
 echo "Installing Kubernetes Gateway API CRDs..."
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
 echo "Installing Gloo Gateway Enterprise Edition..."
 helm repo add glooe https://storage.googleapis.com/gloo-ee-helm
 helm repo update
@@ -69,7 +69,7 @@ EOF
 # Deploy a simple app.
 echo "Deploying a simple app..."
 kubectl create ns httpbin
-kubectl -n httpbin apply -f https://raw.githubusercontent.com/solo-io/gloo-mesh-use-cases/main/policy-demo/httpbin.yaml
+kubectl -n httpbin apply -f https://raw.githubusercontent.com/solo-io/gloo-mesh-use-cases/main/policy-demo/httpbin-http2.yaml
 
 sleep 30
 

@@ -1,0 +1,127 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gloo-control-plane
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gloo-proxy-test
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo-proxy-http
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: httpbin-test
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: httpbin
+            namespace: httpbin
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: netshoot-test
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: netshoot
+            namespace: default
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: smoke-test-routing
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/headers -H "Host: www.example.com"
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+#---
+#apiVersion: chainsaw.kyverno.io/v1alpha1
+#kind: Test
+#metadata:
+#  name: smoke-test-enable-upstream
+#spec:
+#  steps:
+#  - try:
+    # first operation: create the upstream
+#    - apply:
+#        file: httpbin-upstream.yaml
+#    - script:
+#        content: |
+#          kubectl exec deploy/netshoot -n default -- curl --http2 -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/headers -H "host: www.example.com"
+#        outputs:
+#        - name: statuscode
+#          value: ($stdout)
+#    - assert:
+#        resource:
+#          ($statuscode): "200"
+#---
+#apiVersion: chainsaw.kyverno.io/v1alpha1
+#kind: Test
+#metadata:
+#  name: smoke-test-enable-service-annotations
+#spec:
+#  steps:
+#  - try:
+    # first operation: annotate the service
+#    - script:
+#        content: |
+#          kubectl annotate service httpbin gloo.solo.io/h2_service=true -n httpbin
+#          sleep 5
+#          kubectl exec deploy/netshoot -n default -- curl --http2 -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/headers -H "host: www.example.com"
+#        outputs:
+#        - name: statuscode
+#          value: ($stdout)
+#    - assert:
+#        resource:
+#          ($statuscode): "200"
+#    - script:
+#        content: |
+#          kubectl annotate service httpbin gloo.solo.io/h2_service=false -n httpbin --overwrite
