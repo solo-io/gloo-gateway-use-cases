@@ -1,0 +1,79 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: get-started-test
+spec:
+  steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        content: |
+          bash scripts/01.sh
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+  - try:
+    - script:
+        content: |
+          bash scripts/02.sh
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo-proxy-http
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+  - try:
+    - script:
+        content: |
+          bash scripts/03.sh
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: httpbin
+            namespace: httpbin
+          status:
+            readyReplicas: 1
+  - try:
+    - script:
+        content: |
+          bash scripts/04.sh
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: netshoot
+            namespace: default
+          status:
+            readyReplicas: 1
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/headers -H "Host: www.example.com"
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
