@@ -1,9 +1,25 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: gloo-control-plane
+  name: get-started-oss-helm-test
 spec:
   steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.glooLicense != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        - name: GLOO_GATEWAY_LICENSE_KEY
+          value: ($values.glooLicense)
+        content: |
+          bash scripts/install-gloo-gateway.sh
   - try:
     - assert:
         resource:
@@ -14,13 +30,10 @@ spec:
             namespace: gloo-system
           status:
             readyReplicas: 1
----
-apiVersion: chainsaw.kyverno.io/v1alpha1
-kind: Test
-metadata:
-  name: gloo-proxy-test
-spec:
-  steps:
+  - try:
+    - script:
+        content: |
+          bash ../../common/scripts/setup-api-gateway.sh
   - try:
     - assert:
         resource:
@@ -31,13 +44,10 @@ spec:
             namespace: gloo-system
           status:
             readyReplicas: 1
----
-apiVersion: chainsaw.kyverno.io/v1alpha1
-kind: Test
-metadata:
-  name: httpbin-test
-spec:
-  steps:
+  - try:
+    - script:
+        content: |
+          bash ../../common/scripts/deploy-httpbin.sh
   - try:
     - assert:
         resource:
@@ -48,13 +58,10 @@ spec:
             namespace: httpbin
           status:
             readyReplicas: 1
----
-apiVersion: chainsaw.kyverno.io/v1alpha1
-kind: Test
-metadata:
-  name: netshoot-test
-spec:
-  steps:
+  - try:
+    - script:
+        content: |
+          bash ../../common/scripts/expose-httpbin.sh
   - try:
     - assert:
         resource:
@@ -65,13 +72,6 @@ spec:
             namespace: default
           status:
             readyReplicas: 1
----
-apiVersion: chainsaw.kyverno.io/v1alpha1
-kind: Test
-metadata:
-  name: smoke-test-routing
-spec:
-  steps:
   - try:
     - script:
         content: |

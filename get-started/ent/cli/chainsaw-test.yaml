@@ -8,11 +8,16 @@ spec:
     - assert:
         resource:
           ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.glooLicense != null): true
   - try:
     - script:
         env:
         - name: GLOO_VERSION
           value: ($values.glooVersion)
+        - name: GLOO_GATEWAY_LICENSE_KEY
+          value: ($values.glooLicense)
         content: |
           bash scripts/install-gloo-gateway.sh
   - try:

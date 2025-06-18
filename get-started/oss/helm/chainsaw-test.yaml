@@ -14,7 +14,7 @@ spec:
         - name: GLOO_VERSION
           value: ($values.glooVersion)
         content: |
-          bash scripts/01.sh
+          bash scripts/install-gloo-gateway.sh
   - try:
     - assert:
         resource:
@@ -28,7 +28,7 @@ spec:
   - try:
     - script:
         content: |
-          bash scripts/02.sh
+          bash ../../common/scripts/setup-api-gateway.sh
   - try:
     - assert:
         resource:
@@ -42,7 +42,7 @@ spec:
   - try:
     - script:
         content: |
-          bash scripts/03.sh
+          bash ../../common/scripts/deploy-httpbin.sh
   - try:
     - assert:
         resource:
@@ -56,7 +56,7 @@ spec:
   - try:
     - script:
         content: |
-          bash scripts/04.sh
+          bash ../../common/scripts/expose-httpbin.sh
   - try:
     - assert:
         resource:
