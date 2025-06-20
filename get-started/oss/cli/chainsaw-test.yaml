@@ -3,6 +3,8 @@ kind: Test
 metadata:
   name: get-started-oss-cli-test
 spec:
+  timeouts:
+    exec: 60s
   steps:
   - try:
     - assert:

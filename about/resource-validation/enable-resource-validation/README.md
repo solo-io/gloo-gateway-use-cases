@@ -1,0 +1,2 @@
+# Enable Resource Validaion
+This section depends on Gloo Gateway Enterprise already having been installed in the system in order to test.  You should run the tests in `get-started/ent/helm` before running this as it will use Helm to update the install.

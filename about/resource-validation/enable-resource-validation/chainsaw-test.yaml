@@ -1,0 +1,42 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: faults-routeoption-test
+spec:
+  timeouts:
+    exec: 60s
+  steps:  
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.glooLicense != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        - name: GLOO_GATEWAY_LICENSE_KEY
+          value: ($values.glooLicense)
+        content: |
+          bash scripts/enable-strict-resource-validation.sh
+  - try:
+    - script:
+        content: |
+          kubectl apply -n httpbin -f- <<EOF
+          apiVersion: gateway.solo.io/v1
+          kind: RouteOption
+          metadata:
+            name: faults
+            namespace: httpbin
+          spec:
+            options:
+              faults:
+                abort:
+                  percentage: 50
+                  # httpStatus: 503
+          EOF
+        check:
+          (contains($stderr, 'Error from server')): true 
