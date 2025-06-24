@@ -1,10 +1,19 @@
 #!/bin/bash
 
-GLOO_GATEWAY_VERSION=1.18.13 # OSS version
+# First, need to check for the existence of a license key.
+if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
+  echo "Please set the GLOO_GATEWAY_LICENSE_KEY environment variable."
+  exit 1
+fi
+
+if [[ -z "${GLOO_VERSION}" ]]; then
+  echo "Please set the GLOO_VERSION environment variable."
+  exit 1
+fi
 
 # Install Argo CD
 echo "Installing Argo CD"
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
 kubectl create namespace argocd
 until kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.12.3/manifests/install.yaml > /dev/null 2>&1; do sleep 2; done
 # wait for deployment to complete
@@ -32,12 +41,12 @@ echo "You can also use the CLI to interact with Argo CD"
 echo "argocd login localhost:8080 --insecure --username admin --password solo.io"
 echo ""
 
-echo "Installing Gloo Gateway OSS"
+echo "Installing Gloo Gateway Enterprise Edition"
 kubectl apply -f- <<EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: gloo-gateway-oss-helm
+  name: gloo-gateway-ee-helm
   namespace: argocd
 spec:
   destination:
@@ -45,23 +54,32 @@ spec:
     server: https://kubernetes.default.svc
   project: default
   source:
-    chart: gloo
+    chart: gloo-ee
     helm:
       skipCrds: false
       values: |
-        kubeGateway:
-          # Enable K8s Gateway integration
-          enabled: true
-        gatewayProxies:
-          gatewayProxy:
-            disabled: true
         gloo:
+          discovery:
+            enabled: false
           disableLeaderElection: true
-        discovery:
-          # For demo purposes, disable discovery
+          gatewayProxies:
+            gatewayProxy:
+              disabled: true
+          kubeGateway:
+            enabled: true
+        gloo-fed:
           enabled: false
-    repoURL: https://storage.googleapis.com/solo-public-helm
-    targetRevision: $GLOO_GATEWAY_VERSION
+          glooFedApiserver:
+            enable: false
+        grafana:
+          defaultInstallationEnabled: false
+        license_key: ${GLOO_GATEWAY_LICENSE_KEY}
+        observability:
+          enabled: false
+        prometheus:
+          enabled: false
+    repoURL: https://storage.googleapis.com/gloo-ee-helm
+    targetRevision: $GLOO_VERSION
   syncPolicy:
     automated:
       # Prune resources during auto-syncing (default is false)
