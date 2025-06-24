@@ -12,7 +12,7 @@ ports:
       - loadbalancer
 registries:
   use:
-    - k3d-myregistry.localhost:5000    
+    - k3d-myregistry.localhost:5001    
 options:
   k3d:
     wait: true

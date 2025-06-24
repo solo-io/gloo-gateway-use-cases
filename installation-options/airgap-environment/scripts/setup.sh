@@ -14,27 +14,31 @@ if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.10
-registry=k3d-myregistry.localhost:5000
-registry_localhost=localhost:5000
+if [[ -z "${GLOO_VERSION}" ]]; then
+  echo "Please set the GLOO_VERSION environment variable."
+  exit 1
+fi
 
-# Create a k3d cluster with a local registry
-echo "Creating local cluster..."
-docker network create k3d-cluster-network 
-k3d registry create myregistry.localhost --port 5000
-k3d cluster create --config gloo.yaml
+registry=k3d-myregistry.localhost:5001
+registry_localhost=localhost:5001
 
 echo "Retrieving Gloo Gateway images..."
-helm template glooe/gloo-ee --version $GLOO_VERSION --set-string license_key=$GLOO_GATEWAY_LICENSE_KEY | yq e '. | .. | select(has("image"))' - | grep image: | sed 's/image: //' | sed -e 's/@sha256.*//' > images.txt
+helm template glooe/gloo-ee --version $GLOO_VERSION --set-string license_key=$GLOO_GATEWAY_LICENSE_KEY | yq e '. | .. | select(has("image"))' - | grep image: | sed 's/image: //' | sed -e 's/@sha256.*//' | sed -e 's/"//g' > images.txt
+#helm template glooe/gloo-ee --version $GLOO_VERSION --set-string license_key=$GLOO_GATEWAY_LICENSE_KEY | yq e '. | .. | select(has("image"))' - | grep image: | sed 's/image: //' | sed -e 's/"//g' > images.txt
 cat images.txt | while read image; do 
     docker pull $image; 
 done
 
 cat images.txt | while read image; do
   src=$(echo $image | sed 's/^docker\.io\///g' | sed 's/^library\///g')
-  dst=$(echo $image | awk -F/ '{ if(NF>3){ print $3"/"$4}else{if(NF>2){ print $2"/"$3}else{if($1=="docker.io"){ print $2}else{print $1"/"$2}}}}' | sed 's/^library\///g')
+  dst=$(echo $image | awk -F/ '{ if(NF>3){ print $3"/"$4}else{if((NF>2)&&($2=="solo-io")){ print $3}else{if(NF>2){ print $2"/"$3}else{if($1=="docker.io"){ print $2}else{print $1"/"$2}}}}}' | sed 's/^library\///g')
   
   id=$(docker images --format "{{.ID}}" $src)
+  echo "Tagging $id as ${registry_localhost}/$dst"
+  if [[ -z "$id" ]]; then
+    echo "ERROR: Image id for $src not found, skipping..."
+    continue
+  fi
 
   docker tag $id ${registry_localhost}/$dst
   docker push ${registry_localhost}/$dst
@@ -55,6 +59,7 @@ helm upgrade --install -n gloo-system gloo glooe/gloo-ee \
 global:
   image:
     registry: ${registry}
+    disableDigest: true
 gloo:
   discovery:
     enabled: false
@@ -148,4 +153,4 @@ spec:
         command: ["sleep", "3600"]
 EOF
 
-echo "You should be setup now.  Try testing!"
+echo "Installation complete!"
