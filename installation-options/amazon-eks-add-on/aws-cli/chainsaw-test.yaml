@@ -1,6 +1,32 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
+  name: gloo-installation-test
+spec:
+  concurrent: false
+  timeouts:
+    exec: 240s
+  steps:
+  - try:
+    - assert:
+        resource:
+          ($values.awsRegion != null): true
+    - assert:
+        resource:
+          ($values.awsCluster != null): true
+  - try:
+    - script:
+        env:
+        - name: AWS_REGION
+          value: ($values.awsRegion)
+        - name: AWS_CLUSTER
+          value: ($values.awsCluster)
+        content: |
+          bash scripts/install-addon.sh
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
   name: gloo-control-plane
 spec:
   steps:
