@@ -1,6 +1,32 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
+  name: gloo-installation-test
+spec:
+  concurrent: false
+  timeouts:
+    exec: 360s
+  steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.glooLicense != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        - name: GLOO_GATEWAY_LICENSE_KEY
+          value: ($values.glooLicense)
+        content: |
+          bash scripts/setup.sh
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
   name: custom-gateway-label-test
 spec:
   steps:

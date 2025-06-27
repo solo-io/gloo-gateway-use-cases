@@ -6,12 +6,18 @@ if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.10
+if [[ -z "${GLOO_VERSION}" ]]; then
+  echo "Please set the GLOO_VERSION environment variable."
+  exit 1
+fi
 
 SCRIPT_DIR=$(dirname "$0")
 
 # Execute installation script from get-started
-$SCRIPT_DIR/../../get-started/install-ee-helm.sh
+bash $SCRIPT_DIR/../../../get-started/ent/helm/scripts/install-gloo-gateway.sh
+bash $SCRIPT_DIR/../../../get-started/common/scripts/setup-api-gateway.sh
+bash $SCRIPT_DIR/../../../get-started/common/scripts/deploy-httpbin.sh
+bash $SCRIPT_DIR/../../../get-started/common/scripts/expose-httpbin.sh
 
 echo "Creating a new GatewayParameters with label custom"
 kubectl apply -f- <<EOF
