@@ -1,0 +1,19 @@
+common:
+  cluster: k3d-gloo
+glooMgmtServer:
+  enabled: true
+glooUi:
+  enabled: true
+prometheus:
+  enabled: true
+redis:
+  deployment:
+    enabled: true
+telemetryCollector:
+  enabled: true
+telemetryGateway:
+  enabled: true
+glooInsightsEngine:
+  enabled: true
+featureGates:
+  ConfigDistribution: true

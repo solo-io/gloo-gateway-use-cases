@@ -1,0 +1,25 @@
+apiVersion: k3d.io/v1alpha3
+kind: Simple
+name: worker
+image: rancher/k3s:v1.30.8-k3s1
+network: k3d-cluster-network
+ports:
+  - port: 80:80
+    nodeFilters:
+      - loadbalancer
+  - port: 443:443
+    nodeFilters:
+      - loadbalancer
+options:
+  k3d:
+    wait: true
+    timeout: "60s"
+    disableLoadbalancer: false
+  k3s:
+    extraArgs:
+      - arg: --disable=traefik
+        nodeFilters:
+          - server:*
+  kubeconfig:
+    updateDefaultKubeconfig: true
+    switchCurrentContext: false
