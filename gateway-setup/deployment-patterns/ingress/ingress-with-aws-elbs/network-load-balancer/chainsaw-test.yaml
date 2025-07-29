@@ -1,9 +1,43 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: gloo-control-plane
+  name: gloo-setup-test
 spec:
+  concurrent: false
+  timeouts:
+    exec: 360s
   steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.glooLicense != null): true
+    - assert:
+        resource:
+          ($values.awsRegion != null): true
+    - assert:
+        resource:
+          ($values.awsAccountId != null): true
+    - assert:
+        resource:
+          ($values.clusterName != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        - name: GLOO_GATEWAY_LICENSE_KEY
+          value: ($values.glooLicense)
+        - name: AWS_REGION
+          value: ($values.awsRegion)
+        - name: AWS_ACCOUNT_ID
+          value: ($values.awsAccountId)
+        - name: CLUSTER_NAME
+          value: ($values.clusterName)
+        content: |
+          bash scripts/setup-http-nlb.sh
   - try:
     - assert:
         resource:
@@ -20,6 +54,7 @@ kind: Test
 metadata:
   name: gloo-proxy-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -37,6 +72,7 @@ kind: Test
 metadata:
   name: httpbin-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -54,6 +90,7 @@ kind: Test
 metadata:
   name: netshoot-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -71,6 +108,7 @@ kind: Test
 metadata:
   name: smoke-test-routing
 spec:
+  concurrent: false
   steps:
   - try:
     - script:
@@ -88,6 +126,7 @@ kind: Test
 metadata:
   name: aws-load-balancer-controller-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -105,6 +144,7 @@ kind: Test
 metadata:
   name: gloo-custom-proxy-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -122,6 +162,7 @@ kind: Test
 metadata:
   name: custom-smoke-test-routing
 spec:
+  concurrent: false
   steps:
   - try:
     - script:
