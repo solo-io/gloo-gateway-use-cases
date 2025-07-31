@@ -1,19 +1,13 @@
 #!/bin/bash
 
-# First, need to check for the existence of a license key.
-if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
-  echo "Please set the GLOO_GATEWAY_LICENSE_KEY environment variable."
-  exit 1
-fi
-
 # Check for AWS environment variables
 if [[ -z "${CLUSTER_NAME}" ]]; then
   echo "Please set the CLUSTER_NAME environment variable."
   exit 1
 fi
 
-if [[ -z "${REGION}" ]]; then
-  echo "Please set the REGION environment variable."
+if [[ -z "${AWS_REGION}" ]]; then
+  echo "Please set the AWS_REGION environment variable."
   exit 1
 fi
 
@@ -22,12 +16,13 @@ if [[ -z "${AWS_ACCOUNT_ID}" ]]; then
   exit 1
 fi
 
-GLOO_VERSION=1.18.10
-
 SCRIPT_DIR=$(dirname "$0")
 
 # Execute installation script from get-started
-$SCRIPT_DIR/../../../../../get-started/install-ee-helm.sh
+bash $SCRIPT_DIR/../../../../../../get-started/ent/helm/scripts/install-gloo-gateway.sh
+bash $SCRIPT_DIR/../../../../../../get-started/common/scripts/deploy-httpbin.sh
+bash $SCRIPT_DIR/../../../../../../get-started/common/scripts/setup-api-gateway.sh
+bash $SCRIPT_DIR/../../../../../../get-started/common/scripts/expose-httpbin.sh
 
 echo "Completed basic installation"
 
@@ -36,7 +31,7 @@ IAM_SA=aws-load-balancer-controller
 
 # Set up an IAM OIDC provider for a cluster to enable IAM roles for pods
 eksctl utils associate-iam-oidc-provider \
- --region ${REGION} \
+ --region ${AWS_REGION} \
  --cluster ${CLUSTER_NAME} \
  --approve
 
@@ -60,7 +55,7 @@ eksctl create iamserviceaccount \
  --attach-policy-arn=arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${IAM_POLICY_NAME} \
  --override-existing-serviceaccounts \
  --approve \
- --region ${REGION}
+ --region ${AWS_REGION}
 
 echo "Created IAM service account."
 

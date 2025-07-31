@@ -8,8 +8,8 @@ if [[ -z "${CLUSTER_NAME}" ]]; then
   exit 1
 fi
 
-if [[ -z "${REGION}" ]]; then
-  echo "Please set the REGION environment variable."
+if [[ -z "${AWS_REGION}" ]]; then
+  echo "Please set the AWS_REGION environment variable."
   exit 1
 fi
 
@@ -33,9 +33,9 @@ eksctl delete iamserviceaccount \
   --cluster=${CLUSTER_NAME} \
   --namespace=kube-system \
   --name=${IAM_SA} \
-  --region ${REGION} 
+  --region ${AWS_REGION}
 
 aws iam delete-policy --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${IAM_POLICY_NAME}
 
 # Execute installation script from get-started
-$SCRIPT_DIR/../../../../../get-started/uninstall.sh
+$SCRIPT_DIR/../../../../../../get-started/uninstall.sh
