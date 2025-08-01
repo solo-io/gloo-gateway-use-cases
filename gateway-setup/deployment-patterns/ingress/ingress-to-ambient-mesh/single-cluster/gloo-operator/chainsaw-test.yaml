@@ -1,9 +1,48 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: gloo-control-plane
+  name: gloo-setup-test
 spec:
+  concurrent: false
+  timeouts:
+    exec: 180s
   steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.glooLicense != null): true
+    - assert:
+        resource:
+          ($values.istioVersion != null): true
+    - assert:
+        resource:
+          ($values.glooMeshVersion != null): true
+    - assert:
+        resource:
+          ($values.glooMeshLicense != null): true
+    - assert:
+        resource:
+          ($values.glooOperatorVersion != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        - name: GLOO_GATEWAY_LICENSE_KEY
+          value: ($values.glooLicense)
+        - name: ISTIO_VERSION
+          value: ($values.istioVersion)
+        - name: GLOO_MESH_VERSION
+          value: ($values.glooMeshVersion)
+        - name: GLOO_MESH_LICENSE_KEY
+          value: ($values.glooMeshLicense)
+        - name: GLOO_OPERATOR_VERSION
+          value: ($values.glooOperatorVersion)
+        content: |
+          bash scripts/setup.sh
   - try:
     - assert:
         resource:
@@ -20,6 +59,7 @@ kind: Test
 metadata:
   name: gloo-proxy-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -37,6 +77,7 @@ kind: Test
 metadata:
   name: httpbin-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -54,6 +95,7 @@ kind: Test
 metadata:
   name: netshoot-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -71,6 +113,7 @@ kind: Test
 metadata:
   name: smoke-test-routing
 spec:
+  concurrent: false
   steps:
   - try:
     - script:
@@ -88,23 +131,25 @@ kind: Test
 metadata:
   name: test-ztunnel-capture
 spec:
+  concurrent: false
   steps:
   - try:
     - script:
         content: |
-          kubectl logs daemonset/ztunnel -n istio-system | grep example.com | grep httpbin | tail -1 | grep -o "response_code=200"
+          kubectl logs daemonset/ztunnel -n istio-system | grep example.com | grep httpbin | tail -1 | grep -o "response_code\":200"
         outputs:
         - name: statuscode
           value: ($stdout)
     - assert:
         resource:
-          ($statuscode): "response_code=200\n"
+          ($statuscode): "response_code\":200\n"
 ---
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
   name: test-productpage-to-ratings
 spec:
+  concurrent: false
   steps:
   - try:
     - script:
@@ -122,6 +167,7 @@ kind: Test
 metadata:
   name: test-productpage-ingress
 spec:
+  concurrent: false
   steps:
   - try:
     - script:

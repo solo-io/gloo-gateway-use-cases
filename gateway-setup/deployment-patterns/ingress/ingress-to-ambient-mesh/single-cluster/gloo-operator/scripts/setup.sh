@@ -1,22 +1,6 @@
 #!/bin/bash
 
-# First, need to check for the existence of a license key.
-if [[ -z "${GLOO_GATEWAY_LICENSE_KEY}" ]]; then
-  echo "Please set the GLOO_GATEWAY_LICENSE_KEY environment variable."
-  exit 1
-fi
-
-GLOO_VERSION=1.18.10
-
-SCRIPT_DIR=$(dirname "$0")
-
-# Before you begin
-# Execute installation script from get-started
-$SCRIPT_DIR/../../../../get-started/install-ee-helm.sh
-
-# Step 1: Set up an ambient mesh
-echo "Setting up an ambient mesh..."
-
+# Preflight checks
 # First, need to check for the existence of a license key.
 if [[ -z "${GLOO_MESH_LICENSE_KEY}" ]]; then
   echo "Please set the GLOO_MESH_LICENSE_KEY environment variable."
@@ -25,13 +9,34 @@ fi
 
 # Solo distrubution of Istio patch version
 # in the format 1.x.x, with no tags
-export ISTIO_VERSION=1.24.2
+if [[ -z "${ISTIO_VERSION}" ]]; then
+  echo "Please set the ISTIO_VERSION environment variable to the desired Istio version (e.g., 1.18.2)."
+  exit 1
+fi
+
+if [[ -z "${GLOO_OPERATOR_VERSION}" ]]; then
+  echo "Please set the GLOO_OPERATOR_VERSION environment variable to the desired Gloo Operator version (e.g., 0.1.0)."
+  exit 1
+fi
+
+SCRIPT_DIR=$(dirname "$0")
+
+# Before you begin
+# Execute installation script from get-started
+bash $SCRIPT_DIR/../../../../../../../get-started/ent/helm/scripts/install-gloo-gateway.sh
+bash $SCRIPT_DIR/../../../../../../../get-started/common/scripts/deploy-httpbin.sh
+bash $SCRIPT_DIR/../../../../../../../get-started/common/scripts/setup-api-gateway.sh
+bash $SCRIPT_DIR/../../../../../../../get-started/common/scripts/expose-httpbin.sh
+
+# Step 1: Set up an ambient mesh
+echo "Setting up an ambient mesh..."
+echo "Installing istioctl..."
 curl -L https://istio.io/downloadIstio | ISTIO_VERSION=${ISTIO_VERSION} sh -
 cd istio-${ISTIO_VERSION}
 export PATH=$PWD/istio-${ISTIO_VERSION}/bin:$PATH
 
 helm install gloo-operator oci://us-docker.pkg.dev/solo-public/gloo-operator-helm/gloo-operator \
---version 0.1.0 \
+--version ${GLOO_OPERATOR_VERSION} \
 -n gloo-mesh \
 --create-namespace \
 --set manager.env.SOLO_ISTIO_LICENSE_KEY=$GLOO_MESH_LICENSE_KEY
@@ -67,6 +72,8 @@ kubectl -n bookinfo apply -f https://raw.githubusercontent.com/istio/istio/maste
 kubectl -n bookinfo apply -f https://raw.githubusercontent.com/solo-io/gloo-mesh-use-cases/main/policy-demo/productpage-with-curl.yaml
 # deploy all bookinfo service accounts
 kubectl -n bookinfo apply -f https://raw.githubusercontent.com/istio/istio/master/samples/bookinfo/platform/kube/bookinfo.yaml -l 'account'
+
+sleep 30 # Wait for the bookinfo pods to be ready
 
 kubectl apply -n bookinfo -f- <<EOF
 apiVersion: gateway.networking.k8s.io/v1
