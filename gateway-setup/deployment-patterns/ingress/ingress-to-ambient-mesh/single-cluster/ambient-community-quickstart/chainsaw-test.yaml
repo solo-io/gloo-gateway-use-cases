@@ -1,0 +1,166 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gloo-setup-test
+spec:
+  concurrent: false
+  timeouts:
+    exec: 180s
+  steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.glooLicense != null): true
+    - assert:
+        resource:
+          ($values.istioVersion != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        - name: GLOO_GATEWAY_LICENSE_KEY
+          value: ($values.glooLicense)
+        - name: ISTIO_VERSION
+          value: ($values.istioVersion)
+        content: |
+          bash scripts/setup.sh
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gloo-proxy-test
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo-proxy-http
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: httpbin-test
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: httpbin
+            namespace: httpbin
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: netshoot-test
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: netshoot
+            namespace: default
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: smoke-test-routing
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/headers -H "Host: www.example.com"
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-ztunnel-capture
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl logs daemonset/ztunnel -n istio-system | grep httpbin | tail -1 | grep -o "dst.identity=\"spiffe://cluster.local/ns/httpbin/sa/httpbin\""
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "dst.identity=\"spiffe://cluster.local/ns/httpbin/sa/httpbin\"\n"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-productpage-to-ratings
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl -n bookinfo debug -i pods/$(kubectl get pod -l app=productpage -A -o jsonpath='{.items[0].metadata.name}') --image=curlimages/curl -- curl -i -w '%{http_code}' -o /dev/null -s http://ratings:9080/ratings/1 | tail -1
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-productpage-ingress
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/productpage
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
