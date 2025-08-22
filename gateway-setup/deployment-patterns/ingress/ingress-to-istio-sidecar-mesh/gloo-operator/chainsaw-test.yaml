@@ -1,9 +1,58 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: gloo-control-plane
+  name: gloo-setup-test
 spec:
+  concurrent: false
+  timeouts:
+    exec: 180s
   steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.glooLicense != null): true
+    - assert:
+        resource:
+          ($values.istioVersion != null): true
+    - assert:
+        resource:
+          ($values.glooMeshVersion != null): true
+    - assert:
+        resource:
+          ($values.glooMeshLicense != null): true
+    - assert:
+        resource:
+          ($values.glooOperatorVersion != null): true
+    - assert:
+        resource:
+          ($values.repoKey != null): true
+    - assert:
+        resource:
+          ($values.clusterName != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        - name: GLOO_GATEWAY_LICENSE_KEY
+          value: ($values.glooLicense)
+        - name: ISTIO_VERSION
+          value: ($values.istioVersion)
+        - name: GLOO_MESH_VERSION
+          value: ($values.glooMeshVersion)
+        - name: GLOO_MESH_LICENSE_KEY
+          value: ($values.glooMeshLicense)
+        - name: GLOO_OPERATOR_VERSION
+          value: ($values.glooOperatorVersion)
+        - name: REPO_KEY
+          value: ($values.repoKey)
+        - name: CLUSTER_NAME
+          value: ($values.clusterName)
+        content: |
+          bash scripts/setup.sh
   - try:
     - assert:
         resource:
@@ -20,6 +69,7 @@ kind: Test
 metadata:
   name: gloo-proxy-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -37,6 +87,7 @@ kind: Test
 metadata:
   name: httpbin-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -54,6 +105,7 @@ kind: Test
 metadata:
   name: netshoot-test
 spec:
+  concurrent: false
   steps:
   - try:
     - assert:
@@ -71,6 +123,7 @@ kind: Test
 metadata:
   name: smoke-test-routing
 spec:
+  concurrent: false
   steps:
   - try:
     - script:
@@ -88,6 +141,7 @@ kind: Test
 metadata:
   name: check-gloo-proxy-pods
 spec:
+  concurrent: false
   steps:
   - try:
     - script:
@@ -105,6 +159,7 @@ kind: Test
 metadata:
   name: test-istiodiscoveryaddress
 spec:
+  concurrent: false
   steps:
   - try:
     - script:
@@ -115,13 +170,14 @@ spec:
           value: ($stdout)
     - assert:
         resource:
-          ($discoveryaddress): "istiod.istio-system.svc:15012"
+          ($discoveryaddress): "istiod-gloo.istio-system.svc:15012"
 ---
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
   name: test-productpage-to-ratings
 spec:
+  concurrent: false
   steps:
   - try:
     - script:

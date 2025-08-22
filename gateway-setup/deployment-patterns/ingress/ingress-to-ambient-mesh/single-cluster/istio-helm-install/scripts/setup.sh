@@ -33,10 +33,10 @@ SCRIPT_DIR=$(dirname "$0")
 
 # Before you begin
 # Execute installation script from get-started
-bash $SCRIPT_DIR/../../../../../../../get-started/ent/helm/scripts/install-gloo-gateway.sh
-bash $SCRIPT_DIR/../../../../../../../get-started/common/scripts/deploy-httpbin.sh
-bash $SCRIPT_DIR/../../../../../../../get-started/common/scripts/setup-api-gateway.sh
-bash $SCRIPT_DIR/../../../../../../../get-started/common/scripts/expose-httpbin.sh
+bash $SCRIPT_DIR/../../../../../get-started/ent/helm/scripts/install-gloo-gateway.sh
+bash $SCRIPT_DIR/../../../../../get-started/common/scripts/deploy-httpbin.sh
+bash $SCRIPT_DIR/../../../../../get-started/common/scripts/setup-api-gateway.sh
+bash $SCRIPT_DIR/../../../../../get-started/common/scripts/expose-httpbin.sh
 
 # Step 1: Set up an ambient mesh
 echo "Setting up an ambient mesh..."
