@@ -1,0 +1,208 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gloo-setup-test
+spec:
+  concurrent: false
+  timeouts:
+    exec: 180s
+  steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.glooLicense != null): true
+    - assert:
+        resource:
+          ($values.istioVersion != null): true
+    - assert:
+        resource:
+          ($values.glooMeshVersion != null): true
+    - assert:
+        resource:
+          ($values.glooMeshLicense != null): true
+    - assert:
+        resource:
+          ($values.glooOperatorVersion != null): true
+    - assert:
+        resource:
+          ($values.repoKey != null): true
+    - assert:
+        resource:
+          ($values.clusterName != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        - name: GLOO_GATEWAY_LICENSE_KEY
+          value: ($values.glooLicense)
+        - name: ISTIO_VERSION
+          value: ($values.istioVersion)
+        - name: GLOO_MESH_VERSION
+          value: ($values.glooMeshVersion)
+        - name: GLOO_MESH_LICENSE_KEY
+          value: ($values.glooMeshLicense)
+        - name: GLOO_OPERATOR_VERSION
+          value: ($values.glooOperatorVersion)
+        - name: REPO_KEY
+          value: ($values.repoKey)
+        - name: CLUSTER_NAME
+          value: ($values.clusterName)
+        content: |
+          bash scripts/setup.sh
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gloo-proxy-test
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo-proxy-http
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: httpbin-test
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: httpbin
+            namespace: httpbin
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: netshoot-test
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: netshoot
+            namespace: default
+          status:
+            readyReplicas: 1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: smoke-test-routing
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/headers -H "Host: www.example.com"
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: check-gloo-proxy-pods
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl get pods -l gloo=kube-gateway -n gloo-system -ojsonpath='{.items[0].spec.containers[*].name}' | wc -w
+        outputs:
+        - name: glooProxyContainerCount
+          value: ($stdout)
+    - assert:
+        resource:
+          ($glooProxyContainerCount): "3"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-istiodiscoveryaddress
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl get gatewayparameters gloo-gateway -n gloo-system -ojsonpath='{.spec.kube.istio.istioProxyContainer.istioDiscoveryAddress}'
+        outputs:
+        - name: discoveryaddress
+          value: ($stdout)
+    - assert:
+        resource:
+          ($discoveryaddress): "istiod-gloo.istio-system.svc:15012"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-productpage-to-ratings
+spec:
+  concurrent: false
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl -n bookinfo debug -i pods/$(kubectl get pod -l app=productpage -A -o jsonpath='{.items[0].metadata.name}') --image=curlimages/curl -- curl -i -w '%{http_code}' -o /dev/null -s http://ratings:9080/ratings/1 | tail -1
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-productpage-ingress
+spec:
+  steps:
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -i -w '%{http_code}' -o /dev/null -s http://gloo-proxy-http.gloo-system:8080/productpage
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
