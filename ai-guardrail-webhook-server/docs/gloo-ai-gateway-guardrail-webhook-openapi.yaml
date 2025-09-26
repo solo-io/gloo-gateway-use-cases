@@ -1,8 +1,9 @@
 openapi: 3.1.0
 info:
-  title: AI Gateway GuardRail Webhook API
-  description: "\nThis API specification defines the webhook endpoints for the Gloo\
-    \ AI Gateway Guardrail feature. The Guardrail feature provides a way to intercept\
+  title: GuardRail Webhook API
+  description: "\nThis API specification defines the webhook endpoints for the \
+    \ Guardrail feature for AI use cases in kgateway, agentgateway enterprise, and Gloo Gateway. \
+    \ The Guardrail feature provides a way to intercept\
     \ and process both requests to and responses from Large Language Models (LLMs).\
     \ This way, you can implement your own advanced guardrails and content filtering.\n\
     \nThe Guardrail feature consists of two main webhook endpoints:\n\n1. `/request`\
@@ -70,7 +71,7 @@ paths:
         \ returned to the user. The `role` and `content` are extracted from the response\
         \ into the `ResponseChoices` JSON object, regardless of the API format from\
         \ various providers.\n\nFor streaming responses from the LLM, this webhook\
-        \ is called multiple times for a single response. The AI gateway buffers and\
+        \ is called multiple times for a single response. The gateway buffers and\
         \ detects the semantic boundary of the content before making the webhook call.\n\
         \nTwo types of responses are possible by returning one of the following JSON\
         \ objects:\n\n1. `PassAction`: \n   - Indicates that no action is taken for\
