@@ -1,6 +1,6 @@
-# Sample Python Webhook Server to receive AI Gateway Guardrail webhook calls
+# Sample Python Webhook Server to receive Guardrail Webhook calls
 
-This server demonstrates how to implement a webhook for the AI Gateway Guardrail feature. The Guardrail feature allows you to intercept and process both requests to and responses from Large Language Models (LLMs).
+This server demonstrates how to implement a webhook for the Guardrail feature that you can use in AI use cases with kgateway, agentgateway enterprise, and Gloo Gateway. The Guardrail feature allows you to intercept and process both requests to and responses from Large Language Models (LLMs).
 
 ### Features
 
