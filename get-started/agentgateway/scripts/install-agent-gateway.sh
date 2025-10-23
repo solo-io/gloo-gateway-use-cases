@@ -20,7 +20,7 @@ helm upgrade -i gloo-gateway-crds oci://us-docker.pkg.dev/solo-public/gloo-gatew
 helm upgrade -i gloo-gateway oci://us-docker.pkg.dev/solo-public/gloo-gateway/charts/gloo-gateway \
 -n gloo-system \
 --version $GLOO_VERSION \
---set agentGateway.enabled=true \
+--set agentgateway.enabled=true \
 --set licensing.agentgatewayLicenseKey=$AGENTGATEWAY_LICENSE_KEY
 
 sleep 20

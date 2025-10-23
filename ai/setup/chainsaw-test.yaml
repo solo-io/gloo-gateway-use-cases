@@ -1,0 +1,54 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: get-started-ent-helm-test
+spec:
+  timeouts:
+    exec: 60s
+  steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.agentGatewayLicense != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        - name: AGENTGATEWAY_LICENSE_KEY
+          value: ($values.agentGatewayLicense)
+        content: |
+          bash scripts/setup.sh
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo-gateway
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: agentgateway
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+  - try:
+    - assert:
+        resource:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
+          metadata:
+            name: agentgateway
+            namespace: gloo-system
+          spec:
+            gatewayClassName: agentgateway-enterprise
