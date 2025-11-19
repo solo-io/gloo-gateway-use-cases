@@ -1,0 +1,79 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: amazon-bedrock-test
+spec:
+  timeouts:
+    exec: 60s
+  steps:
+  - try:
+    - assert:
+        resource:
+          ($values.glooVersion != null): true
+    - assert:
+        resource:
+          ($values.agentGatewayLicense != null): true
+    - assert:
+        resource:
+          ($values.awsAccessKeyId != null): true
+    - assert:
+        resource:
+          ($values.awsSecretAccessKey != null): true
+    - assert:
+        resource:
+          ($values.awsSessionToken != null): true
+  - try:
+    - script:
+        env:
+        - name: GLOO_VERSION
+          value: ($values.glooVersion)
+        - name: AGENTGATEWAY_LICENSE_KEY
+          value: ($values.agentGatewayLicense)
+        - name: AWS_ACCESS_KEY_ID
+          value: ($values.awsAccessKeyId)
+        - name: AWS_SECRET_ACCESS_KEY
+          value: ($values.awsSecretAccessKey)
+        - name: AWS_SESSION_TOKEN
+          value: ($values.awsSessionToken)
+        content: |
+          bash scripts/setup.sh
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: gloo-gateway
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+  - try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: agentgateway
+            namespace: gloo-system
+          status:
+            readyReplicas: 1
+  - try:
+    - assert:
+        resource:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
+          metadata:
+            name: agentgateway
+            namespace: gloo-system
+          spec:
+            gatewayClassName: agentgateway-enterprise
+  - try:
+    - script:
+        content: |
+          kubectl exec deploy/netshoot -n default -- curl -i -w '%{http_code}' -o /dev/null -s http://agentgateway.gloo-system:8080/bedrock -H "content-type: application/json" -d '{"model":"","messages":[{"role":"user","content":"You are a cloud native solutions architect, skilled in explaining complex technical concepts such as API Gateway, microservices, LLM operations, kubernetes, and advanced networking patterns. Write me a 20-word pitch on why I should use an AI gateway in my Kubernetes cluster."}]}'
+        outputs:
+        - name: statuscode
+          value: ($stdout)
+    - assert:
+        resource:
+          ($statuscode): "200"
